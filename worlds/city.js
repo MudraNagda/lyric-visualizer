@@ -386,7 +386,7 @@ WORLDS.city = {
         g.fillStyle = '#0b1024'; g.fillRect(x + 10, y + 90, w - 20, 12);
       } },
 
-    { song: 'daylight', behind: true, label: [857, 612], hit: [[790, 596, 140, 206]],
+    { song: 'daylight', behind: true, label: [857, 656], hit: [[790, 596, 140, 206]],
       mood: { dawn: 1, rain: 0, lights: -0.75 },
       draw(g, t, a) {
         const y = 776 - 132 * a;

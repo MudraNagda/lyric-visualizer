@@ -236,7 +236,7 @@ class WorldStage {
     // titles: all of them on arrival, then only the one in focus
     const intro = Math.max(0, Math.min(1, (t - 1) / 0.8)) * Math.max(0, Math.min(1, 1 - (t - 6) / 1.5));
     g.save();
-    g.font = 'italic 500 23px Inter, -apple-system, sans-serif';
+    g.font = '600 32px Caveat, cursive';
     g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.lineJoin = 'round';
     for (const it of w.items) {
       const a = Math.max(intro, it.a);

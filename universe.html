@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>the universe — lyric visualizer</title>
+<title>the universe · lyric visualizer</title>
 <link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
 <style>
   :root {
     --eggshell: #f4efe4;
@@ -49,7 +49,7 @@
     height: 100%;
     display: block;
   }
-  .map { overflow: hidden; border-radius: 14px; }
+  .map { overflow: hidden; -webkit-mask-size: 100% 100%; mask-size: 100% 100%; }
   .zoomer {
     position: absolute; inset: 0;
     transform-origin: 0 0;
@@ -75,10 +75,9 @@
 
   /* ---- overlay ---- */
   .place-label {
-    font-size: 19px;
-    font-style: italic;
-    font-weight: 500;
-    letter-spacing: 0.06em;
+    font-family: 'Caveat', cursive;
+    font-size: 34px;
+    font-weight: 600;
     fill: var(--ink);
     text-anchor: middle;
     cursor: pointer;
@@ -112,7 +111,7 @@
     transition: opacity 0.5s ease 0.5s, transform 0.6s cubic-bezier(0.3, 1.4, 0.5, 1) 0.5s;
   }
   .song .title {
-    font-style: italic; font-weight: 500; text-anchor: middle; fill: #2f2a22;
+    font-family: 'Caveat', cursive; font-weight: 600; text-anchor: middle; fill: #2f2a22;
     paint-order: stroke; stroke: rgba(244,239,228,0.85); stroke-linejoin: round;
     opacity: 0; pointer-events: none; transition: opacity 0.4s ease;
   }
@@ -138,7 +137,7 @@
 
   #tip { pointer-events: none; }
   #tip text {
-    font-size: 17px; font-style: italic; font-weight: 500;
+    font-family: 'Caveat', cursive; font-size: 26px; font-weight: 600;
     text-anchor: middle; fill: #2f2a22;
     paint-order: stroke; stroke: #f4efe4; stroke-width: 6px; stroke-linejoin: round;
   }
@@ -150,17 +149,11 @@
     overflow-y: auto;
     line-height: 1.55;
   }
-  .panel h1 { font-size: 1.25rem; font-style: italic; font-weight: 500; margin-bottom: 4px; }
-  .kicker {
-    font-size: 0.68rem; letter-spacing: 0.22em; color: var(--soft);
-    text-transform: uppercase; margin-bottom: 14px;
-  }
+  .panel h1 { font-family: 'Caveat', cursive; font-size: 2.3rem; font-weight: 600; line-height: 1.1; margin-bottom: 2px; }
+  .kicker { font-family: 'Caveat', cursive; font-size: 1.25rem; color: var(--soft); margin-bottom: 12px; }
   .panel p { font-size: 0.88rem; margin-bottom: 14px; }
   .panel p.note { font-size: 0.76rem; color: var(--soft); }
-  .panel h2 {
-    font-size: 0.68rem; letter-spacing: 0.22em; color: var(--soft);
-    text-transform: uppercase; font-weight: 500; margin: 26px 0 8px;
-  }
+  .panel h2 { font-family: 'Caveat', cursive; font-size: 1.45rem; font-weight: 600; color: var(--soft); margin: 22px 0 4px; }
   .back {
     display: inline-block; font-size: 0.72rem; letter-spacing: 0.14em; color: var(--soft);
     text-decoration: none; margin-bottom: 22px;
@@ -180,9 +173,8 @@
   .rows .t small { font-style: normal; font-weight: 400; font-size: 0.7rem; color: var(--soft); letter-spacing: 0.04em; margin-left: 6px; }
   .rows .d { grid-column: 2; font-size: 0.8rem; color: #6a6354; }
   .tag {
-    display: inline-block; font-size: 0.62rem; letter-spacing: 0.16em; text-transform: uppercase;
-    border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; color: var(--soft);
-    margin-bottom: 14px;
+    display: inline-block; font-family: 'Caveat', cursive; font-size: 1.15rem; color: var(--soft);
+    border-bottom: 1.5px solid var(--line); margin-bottom: 12px; transform: rotate(-1.5deg);
   }
   .paint-link {
     display: inline-block; border: 1px solid rgba(74,68,56,0.28); border-radius: 999px;
@@ -238,23 +230,23 @@ const W = 1600, H = 1100;
 
 const PLACES = [
   { id: 'sky', name: 'the 2 a.m. sky', cx: 800, cy: 92, rx: 640, ry: 40, wash: '#2c2f5c', dot: '#f6e7b0',
-    blurb: 'The hour when everything in this world gets confessed. The sleepless songs hang over every other place like stars: whatever happens down in the town, the city or the woods, someone is awake up here thinking about it.' },
+    blurb: 'Nobody sleeps in these songs. It is always 2 a.m. and someone is pacing the floor, going over what they said. I put them up here because the night sits over everything else on the map.' },
   { id: 'castle', name: 'the storybook kingdom', cx: 270, cy: 390, rx: 175, ry: 125, wash: '#b9a3d6', dot: '#7a5fa8',
-    blurb: 'Balconies, crowns, white horses. She builds the fairy tale early, then spends twenty years testing it: knocking the castle down, living in the rubble, and deciding which parts were worth keeping.' },
+    blurb: 'She gave us the balcony and the white horse first. Then she kept coming back to knock the castle down and see what was still standing. I love that she never fully gives up on it.' },
   { id: 'woods', name: 'the folklore woods', cx: 770, cy: 385, rx: 215, ry: 130, wash: '#6f8f6a', dot: '#3f6141',
-    blurb: 'Where she stops writing as herself. The woods are full of invented people, inherited memories and childhood, all told quietly and from a distance, as if found in an old cabin.' },
+    blurb: 'This is where she stops singing as herself. The woods are full of made-up people and borrowed memories, told quietly, like stories you would find in a cabin drawer.' },
   { id: 'london', name: 'across the sea', cx: 1405, cy: 315, rx: 130, ry: 82, wash: '#8d97a6', dot: '#566070',
-    blurb: 'A grey island reached by longing first, then by plane. Songs go there full of hope, stay for years, and the last ones look back at it from the far shore.' },
+    blurb: 'A grey, rainy island. First she misses someone who flew there. Then she moves there. Then she has to say goodbye to it.' },
   { id: 'town', name: 'the small town', cx: 255, cy: 770, rx: 190, ry: 145, wash: '#e2b75c', dot: '#9a7420',
-    blurb: 'Porch lights, pickup trucks, bleachers, a high-school hallway. Everything starts here, and the later albums keep sending people back: for the holidays, for an apology, to see who stayed.' },
+    blurb: 'Porch lights, pickup trucks, bleachers, a school hallway. It all starts here. And she keeps sending people back, for the holidays or to say sorry.' },
   { id: 'road', name: 'the autumn road', cx: 620, cy: 655, rx: 150, ry: 118, wash: '#c9643a', dot: '#a3432a',
-    blurb: 'The road out of town, always driven in the fall. Most of the great romances happen in a moving car somewhere along it, and most of the wrecks too.' },
+    blurb: 'The road out of town, and it is always fall. So many of these love stories happen in a car. So do most of the crashes.' },
   { id: 'city', name: 'the city', cx: 1015, cy: 650, rx: 175, ry: 128, wash: '#5f6f9c', dot: '#3d4a78',
-    blurb: 'Where the road ends: rented apartments, dive bars, lit windows. The city is where love gets specific (a street, a block, a front door) and where losing it means losing the map.' },
+    blurb: 'Where the road ends. Rented apartments, dive bars, other people’s lit windows. In the city love gets an address, which is what makes losing it so hard.' },
   { id: 'coast', name: 'the coast', cx: 1395, cy: 680, rx: 140, ry: 165, wash: '#7fbfb5', dot: '#2f7d78',
-    blurb: 'Salt air and one particular house above the water. Summer lives here: flings that end in August, storms that rinse things out, tides that take love away and bring it back.' },
+    blurb: 'Salt air, and one particular house above the water. This is where summer lives, along with the storms that finally wash someone away.' },
   { id: 'stage', name: 'the stage', cx: 800, cy: 945, rx: 205, ry: 100, wash: '#e58a5a', dot: '#c2552f',
-    blurb: 'Spotlights, sequins, a hall of mirrors. From her second album onward she keeps returning here to ask what fame does to the woman in the middle of it, and who gets pushed on when she is done.' }
+    blurb: 'Spotlights and sequins. She has been asking what fame does to a girl since she was twenty-two, and she is still asking.' }
 ];
 
 const SONGS = [
@@ -265,13 +257,13 @@ const SONGS = [
   ['Never Grow Up', 'Speak Now', 'sky', 'A nightlight in a child’s room, and then, years later, the first cold night alone in a new apartment.', 1],
   ['I Wish You Would', '1989', 'sky', 'Headlights sliding past a window at 2 a.m., two people thinking the same thing on either side of the glass.'],
   ['The Archer', 'Lover', 'sky', 'Lying awake taking inventory of every exit she has ever taken, asking who could possibly stay.'],
-  ['Anti-Hero', 'Midnights', 'sky', 'The night shift of the mind: a sleepless audit of her own flaws, delivered almost as a joke.'],
-  ['Midnight Rain', 'Midnights', 'sky', 'Two people cast as weather: one a clear, steady day, the other a downpour after dark that could not stay put.'],
+  ['Anti-Hero', 'Midnights', 'sky', 'Lying awake listing everything that is wrong with her, and somehow making it funny.'],
+  ['Midnight Rain', 'Midnights', 'sky', 'He is a clear, steady day. She is a downpour after dark that could not stay put.'],
   ['You’re On Your Own, Kid', 'Midnights', 'sky', 'A whole life replayed in one sitting, from waiting around in a hometown to realising that being alone was never the danger.'],
 
   // the storybook kingdom
   ['Love Story', 'Fearless', 'castle', 'A balcony, a disapproving father, and the famous tragedy rewritten so it ends with a ring instead of a tomb.'],
-  ['White Horse', 'Fearless', 'castle', 'The fairy tale called off: nobody is riding in to rescue her, and this was only ever a small town.'],
+  ['White Horse', 'Fearless', 'castle', 'The fairy tale gets called off. Nobody is riding in to rescue her, and this was only ever a small town.'],
   ['Long Live', 'Speak Now', 'castle', 'Crowns worn for one night, dragons fought alongside a band of friends, and a plea to be remembered for it.'],
   ['Castles Crumbling', 'Speak Now (vault)', 'castle', 'A once-adored ruler watching the walls come down and the crowd turn.'],
   ['New Romantics', '1989', 'castle', 'Every brick thrown at her gets saved and used as building material.'],
@@ -280,25 +272,25 @@ const SONGS = [
   ['The Fate of Ophelia', 'The Life of a Showgirl', 'castle', 'A heroine written to drown is pulled out of her tower and her ending before the last act.'],
 
   // the folklore woods
-  ['cardigan', 'folklore', 'woods', 'Feeling like an old sweater forgotten under a bed until someone picks it up and wears it; young love recalled by streetlight.'],
+  ['cardigan', 'folklore', 'woods', 'Feeling like an old sweater forgotten under a bed, until someone picks it up and puts it on.'],
   ['seven', 'folklore', 'woods', 'A swing high over a creek at age seven, and a plan to rescue a friend from a house that was not safe.'],
-  ['the 1', 'folklore', 'woods', 'A shrug and a what-if: how nice it would have been if that one person had been the one.'],
+  ['the 1', 'folklore', 'woods', 'A shrug and a what-if. It would have been nice if that one person had been the one.'],
   ['invisible string', 'folklore', 'woods', 'A single gold thread that was quietly tying two strangers together through every wrong turn.'],
-  ['willow', 'evermore', 'woods', 'Following a glowing thread through the trees; love as something that bends her like a branch in wind.'],
-  ['ivy', 'evermore', 'woods', 'A stone house slowly covered in vines: a married woman overgrown by a love she did not plan.'],
+  ['willow', 'evermore', 'woods', 'Following a glowing thread through the trees, bending like a branch in the wind.'],
+  ['ivy', 'evermore', 'woods', 'A stone house slowly covered in vines, and a married woman overgrown by a love she did not plan.'],
   ['marjorie', 'evermore', 'woods', 'A grandmother’s advice still arriving, as if she had only stepped into the next room.'],
   ['evermore', 'evermore', 'woods', 'A long grey winter on a cabin porch, until the pain stops feeling permanent.'],
 
   // across the sea
   ['Come Back… Be Here', 'Red', 'london', 'He boards a plane for London and she is left in New York wishing she had said more.'],
-  ['London Boy', 'Lover', 'london', 'A tourist’s giddy lap of his city: markets, pubs, the back of a scooter.'],
+  ['London Boy', 'Lover', 'london', 'A giddy tourist’s lap of his city. Markets, pubs, the back of a scooter.'],
   ['the lakes', 'folklore', 'london', 'Wanting to vanish into the northern hills where the old poets went, with one person and no audience.'],
   ['So Long, London', 'The Tortured Poets Department', 'london', 'A farewell to the city and to everything she wore herself out keeping alive there.'],
   ['The Black Dog', 'The Tortured Poets Department', 'london', 'Watching from far away as a dot on a map walks into a pub without her.'],
 
   // the small town
   ['Tim McGraw', 'Taylor Swift', 'town', 'A pickup that gets stuck on back roads, a summer ending, a letter left on a doorstep.'],
-  ['Our Song', 'Taylor Swift', 'town', 'A slamming screen door, a hushed late phone call, a tap on the window: ordinary sounds claimed as a couple’s song.'],
+  ['Our Song', 'Taylor Swift', 'town', 'A slamming screen door, a hushed late phone call, a tap on the window. Ordinary sounds that become their song.'],
   ['Teardrops on My Guitar', 'Taylor Swift', 'town', 'A classroom crush who talks about someone else, and a guitar waiting at home to hear about it.'],
   ['Mary’s Song', 'Taylor Swift', 'town', 'Two kids in a backyard who grow old on the same front porch.'],
   ['Fifteen', 'Fearless', 'town', 'The first morning through the high-school doors, when a hallway feels like the entire world.'],
@@ -309,40 +301,40 @@ const SONGS = [
 
   // the autumn road
   ['Fearless', 'Fearless', 'road', 'A slow drive down a rain-slick street, wanting to get out and dance in the storm in her best dress.'],
-  ['Red', 'Red', 'road', 'A love filed by colour: the blue of losing, the grey of missing, and the loud shade it actually was.'],
+  ['Red', 'Red', 'road', 'Every part of a love gets a colour. Losing is blue, missing is grey, and the love itself was the loud one.'],
   ['Treacherous', 'Red', 'road', 'Headlights on a drive home she knows is a risk, taken anyway.'],
   ['All Too Well', 'Red', 'road', 'A drive upstate under falling leaves, a scarf left in a drawer, a dance in a kitchen lit only by the open fridge.', 3],
-  ['Begin Again', 'Red', 'road', 'A café on a Wednesday: one first date that lets eight months of hurt go.'],
+  ['Begin Again', 'Red', 'road', 'A café on a Wednesday, and a first date that lets eight months of hurt go.'],
   ['Style', '1989', 'road', 'Headlights off on a long midnight drive, a pair who never quite go out of fashion with each other.'],
   ['Out of the Woods', '1989', 'road', 'A sudden brake, stitches, a hospital room, and the same anxious question asked again and again.'],
   ['Getaway Car', 'reputation', 'road', 'A heist movie where the escape vehicle is a rebound, and she is the one who drives off alone.'],
 
   // the city
-  ['Holy Ground', 'Red', 'city', 'A brief love remembered at a sprint: the city blocks they walked treated as somewhere sacred.'],
+  ['Holy Ground', 'Red', 'city', 'A short love remembered at a sprint. The blocks they walked still feel like somewhere sacred.'],
   ['Welcome to New York', '1989', 'city', 'Boxes dropped on an apartment floor and a decision to be somebody new.'],
   ['How You Get the Girl', '1989', 'city', 'Standing at her door in the pouring rain after six months away, with instructions for what to say.', 2],
   ['Delicate', 'reputation', 'city', 'A dive bar on the east side, a name at its lowest, and the careful question of whether it is too soon.'],
   ['Cornelia Street', 'Lover', 'city', 'A rented place in the Village and a street she could never walk down again if this ended.'],
   ['Cruel Summer', 'Lover', 'city', 'Slipping through a garden gate, crying in the back of a car, finally shouting the true thing.'],
-  ['Lover', 'Lover', 'city', 'Christmas lights left up into January; a home where the two of them make the rules.'],
-  ['Daylight', 'Lover', 'city', 'She corrects her own colour theory: love is not the loud red she once wrote about but the gold of morning.'],
-  ['Maroon', 'Midnights', 'city', 'Cheap wine on a shirt, a flushed cheek: the red of an old love gone a shade darker with time.'],
+  ['Lover', 'Lover', 'city', 'Christmas lights left up into January, in a home where the two of them make the rules.'],
+  ['Daylight', 'Lover', 'city', 'She takes back what she once said about love being red. It turned out to be the gold of morning.'],
+  ['Maroon', 'Midnights', 'city', 'Cheap wine on a shirt, a flushed cheek. The red of an old love, gone a shade darker with time.'],
   ['I Look in People’s Windows', 'The Tortured Poets Department', 'city', 'Walking past lit windows at night, hoping to catch one face at someone else’s dinner table.', 0],
 
   // the coast
   ['Starlight', 'Red', 'coast', 'The summer of 1945: two teenagers sneaking into a yacht-club party and dancing like they own it.'],
   ['This Love', '1989', 'coast', 'A love that goes out with the tide and, against the odds, comes back in.'],
-  ['Clean', '1989', 'coast', 'A long drought broken by a storm; coming up for air finally rinsed of someone.'],
+  ['Clean', '1989', 'coast', 'A long drought broken by a storm. She comes up for air and he is finally washed off.'],
   ['the last great american dynasty', 'folklore', 'coast', 'A house on the Rhode Island shore, the scandalous widow who owned it, and the woman who bought it afterwards.'],
-  ['august', 'folklore', 'coast', 'Salt air and a summer that slipped away: the girl who knew he was never hers to lose.'],
+  ['august', 'folklore', 'coast', 'Salt air and a summer that slipped away, from the girl who knew he was never hers to lose.'],
   ['coney island', 'evermore', 'coast', 'A cold bench on an off-season boardwalk, wondering where the two of them went.'],
-  ['Florida!!!', 'The Tortured Poets Department', 'coast', 'The escape hatch: a sunburnt state where people go to become someone else for a while.'],
+  ['Florida!!!', 'The Tortured Poets Department', 'coast', 'A sunburnt state where people go to be someone else for a while.'],
 
   // the stage
   ['The Lucky One', 'Red', 'stage', 'A starlet who got everything, then vanished to tend a garden. The singer starts to envy her.'],
   ['Nothing New', 'Red (vault)', 'stage', 'Twenty-two and already afraid of the day a fresher face takes her place.'],
   ['Blank Space', '1989', 'stage', 'The tabloid caricature played completely straight, mansion and all.'],
-  ['Look What You Made Me Do', 'reputation', 'stage', 'Her former selves lined up and declared dead; a villain built out of other people’s headlines.'],
+  ['Look What You Made Me Do', 'reputation', 'stage', 'All her old selves lined up and declared dead. A villain built out of other people’s headlines.'],
   ['mirrorball', 'folklore', 'stage', 'Spinning on tiptoe, showing everyone in the room themselves, still performing after the crowd goes home.'],
   ['Clara Bow', 'The Tortured Poets Department', 'stage', 'Each new star told she resembles the last one, in a line that finally arrives at her own name.'],
   ['I Can Do It With a Broken Heart', 'The Tortured Poets Department', 'stage', 'Hitting every mark in sequins, grinning, while coming apart underneath.'],
@@ -354,58 +346,58 @@ const SONGS = [
 
 const THREADS = [
   { id: 'triangle', name: 'the love triangle', color: '#8d6fc2', canon: true,
-    blurb: 'One teenage summer told three times. She has said these songs are the same story from each corner: the girl who was left, the girl he left her for, and the boy who did it.',
+    blurb: 'One teenage summer, told three times. She has said these three are the same story. The girl who got left, the girl he left her for, and the boy who did it.',
     stops: [
       ['cardigan', 'Betty, years later, remembering being seventeen and knowing he would come back.'],
-      ['august', 'The other girl’s version: a summer she always understood was borrowed.'],
+      ['august', 'The other girl’s version. She always knew the summer was borrowed.'],
       ['betty', 'James finally tells it himself, practising an apology on the way to her porch.']
     ] },
   { id: 'home', name: 'leaving home, coming back', color: '#8a6a3b', canon: true,
-    blurb: 'The small town is never just the past. Someone leaves it on the first album, and fourteen years later two linked songs show the same homecoming from both sides.',
+    blurb: 'Someone leaves the small town on the very first album. Fourteen years later she writes the homecoming twice, once from the one who left and once from the one who stayed.',
     stops: [
       ['tim-mcgraw', 'Summer ends, someone leaves, and a letter stays behind on a doorstep.'],
       ['fifteen', 'The town at its largest, when a school hallway is the whole world.'],
-      ['welcome-to-new-york', 'The leap itself: arriving somewhere big and deciding to be new.'],
+      ['welcome-to-new-york', 'The leap. Arriving somewhere big and deciding to be new.'],
       ['youre-on-your-own-kid', 'The entire journey in one song, from waiting around at home to the life she built alone.'],
       ['tis-the-damn-season', 'The one who left comes back for the holidays and falls into an old habit.'],
       ['dorothea', 'The same visit from the one who stayed, still keeping a place for her.']
     ] },
   { id: 'car', name: 'the getaway car', color: '#b5452f',
-    blurb: 'Almost every romance in this world happens in a moving vehicle. The car starts as freedom, becomes the place where memory is made, crashes, and is finally named for what it was: an escape.',
+    blurb: 'Count how many of these love stories happen in a car. It starts out as freedom, then it is where the memories get made, then it crashes. In the end she calls it what it was.',
     stops: [
       ['tim-mcgraw', 'It begins in a truck that tends to get stuck on back roads.'],
       ['fearless', 'A slow drive through town on wet pavement, first-date nerves in the passenger seat.'],
       ['treacherous', 'She knows the drive home is a risk and takes it.'],
-      ['all-too-well', 'He nearly runs a red light looking at her; the drive upstate becomes the memory she cannot put down.'],
+      ['all-too-well', 'He nearly runs a red light looking at her. That drive upstate becomes the memory she cannot put down.'],
       ['style', 'Headlights off at midnight, a couple that keeps circling back.'],
-      ['out-of-the-woods', 'The car finally crashes: brakes too soon, stitches, a hospital room.'],
+      ['out-of-the-woods', 'The car finally crashes. Brakes too soon, stitches, a hospital room.'],
       ['getaway-car', 'She names the pattern. Nothing good begins with fleeing the scene.'],
       ['cruel-summer', 'Still in the back seat, crying on the way home, saying the true thing out loud.']
     ] },
   { id: 'rain', name: 'rain', color: '#4f86a8',
-    blurb: 'Weather does the emotional work. Rain starts as the thing you dance in, becomes the setting for every big scene, washes a person out of her system, and ends up being who she is.',
+    blurb: 'Rain is never just weather here. First it is something to dance in. Then every big scene happens in it. By the end she is the rain.',
     stops: [
-      ['fearless', 'Rain as a dare: get out of the car and dance in it.'],
+      ['fearless', 'Rain as a dare. Get out of the car and dance in it.'],
       ['the-way-i-loved-you', 'A fight in the rain at 2 a.m., remembered as the real thing.'],
       ['how-you-get-the-girl', 'Rain as a stage direction for a grand apology at the door.'],
       ['clean', 'The storm that finally rinses someone out.'],
-      ['midnight-rain', 'Now she is the rain: the one who could not be the calm, sunny life he wanted.']
+      ['midnight-rain', 'Now she is the rain, the one who could not be the calm, sunny life he wanted.']
     ] },
   { id: 'growing', name: 'growing up', color: '#6f8f4e',
-    blurb: 'A running conversation between her older and younger selves. The early songs beg time to slow down; the later ones go back to reassure the child that it turned out fine.',
+    blurb: 'She keeps talking to her younger self. The early songs ask time to slow down. The later ones go back and tell the kid it turned out okay.',
     stops: [
       ['never-grow-up', 'A lullaby to a child that turns into a note to herself in a first apartment.'],
       ['seven', 'Childhood before fear, remembered from the top of a swing’s arc.'],
       ['fifteen', 'First heartbreak, and a promise to her younger self that there is more than this.'],
       ['nothing-new', 'Twenty-two and already worried about being replaced.'],
       ['youre-on-your-own-kid', 'The discovery that being on her own was survivable all along.'],
-      ['marjorie', 'What gets handed down: a grandmother’s advice still steering her.']
+      ['marjorie', 'What gets handed down. Her grandmother’s advice is still steering her.']
     ] },
   { id: 'fairy', name: 'the fairy tale and its ruins', color: '#b46aa6',
-    blurb: 'She rewrites a tragedy into a happy ending at eighteen, then keeps interrogating it: the prince fails, the castle falls, the crown is redefined. Seventeen years later she plays the same trick again on a different doomed heroine.',
+    blurb: 'At eighteen she took a tragedy and gave it a happy ending. Then she spent years poking holes in it. Seventeen years later she does the same trick again for a different doomed girl.',
     stops: [
       ['love-story', 'The tragedy rewritten so the lovers get a proposal.'],
-      ['white-horse', 'The first crack: no rescue is coming.'],
+      ['white-horse', 'The first crack. No rescue is coming.'],
       ['long-live', 'The crowns become real for one night, with a band for a court.'],
       ['castles-crumbling', 'The kingdom turns on its ruler.'],
       ['new-romantics', 'She rebuilds using the bricks thrown at her.'],
@@ -414,28 +406,28 @@ const THREADS = [
       ['the-fate-of-ophelia', 'Another doomed heroine saved from her written ending, the first song’s move made again.']
     ] },
   { id: 'colour', name: 'a theory of colour', color: '#c99a1e', canon: true,
-    blurb: 'She assigns love a colour in 2012 and then revises it in public. The later song answers the earlier one directly, and the gold keeps returning after that.',
+    blurb: 'In 2012 she said love was red. Seven years later she took it back and said it was golden. The gold keeps showing up after that.',
     stops: [
       ['red', 'Love sorted by colour. The loud one wins.'],
-      ['daylight', 'She looks back at that old claim and corrects it: love turned out to be golden.'],
+      ['daylight', 'She looks back at that old claim and takes it back. Love turned out to be golden.'],
       ['invisible-string', 'Gold again, now as a thread that was tying two lives together all along.'],
       ['maroon', 'Red revisited after it has dried and darkened.']
     ] },
   { id: 'showgirl', name: 'the showgirl', color: '#e2703a',
-    blurb: 'A twelve-year argument with fame. It begins as a cautionary tale about someone else, turns into satire, then confession, and ends with her as the veteran giving the warning.',
+    blurb: 'A long argument with fame. It starts as a warning about some other star, turns into a joke, then a confession. By the end she is the one giving the warning.',
     stops: [
       ['the-lucky-one', 'A cautionary tale about a star who walked away. She half wants to follow.'],
       ['nothing-new', 'The fear of the next ingénue, years before it could come true.'],
       ['blank-space', 'She puts on the costume the tabloids made for her.'],
-      ['look-what-you-made-me-do', 'The costume becomes armour; the old selves are retired.'],
+      ['look-what-you-made-me-do', 'The costume becomes armour, and the old selves are retired.'],
       ['the-last-great-american-dynasty', 'A woman the whole town gossiped about, and the narrator reveals she bought her house.'],
-      ['mirrorball', 'The quiet admission underneath: she is still trying to be what everyone wants to see.'],
+      ['mirrorball', 'The quiet admission underneath it all. She is still trying to be what everyone wants to see.'],
       ['clara-bow', 'The line of replaced stars reaches her own name.'],
       ['i-can-do-it-with-a-broken-heart', 'The show goes on, brilliantly, while she is falling apart.'],
       ['the-life-of-a-showgirl', 'Now she is the veteran warning the newcomer, who does not listen either.']
     ] },
   { id: 'doors', name: 'doors and windows', color: '#3f6f78',
-    blurb: 'People in these songs are forever on one side of a threshold: tapping on the glass, watching from across the way, turning up on a porch. By the end she is simply outside, looking in.',
+    blurb: 'Someone is always on the wrong side of a door in these songs. Tapping on the glass, watching from across the way, turning up on a porch. In the latest one nobody lets her in.',
     stops: [
       ['our-song', 'A tap on the window is part of the couple’s private soundtrack.'],
       ['you-belong-with-me', 'Two bedroom windows facing each other across the gap.'],
@@ -445,7 +437,7 @@ const THREADS = [
       ['i-look-in-peoples-windows', 'No door opens this time. She walks past other people’s lit rooms looking for one face.']
     ] },
   { id: 'sea', name: 'the crossing', color: '#5a6a8a',
-    blurb: 'An ocean sits between two of her cities. One song watches someone fly over it; years later she crosses herself, stays, and then has to write the way back.',
+    blurb: 'There is an ocean between two of her cities. First she watches someone fly across it. Years later she crosses it herself, stays, and then has to write her way back.',
     stops: [
       ['come-back-be-here', 'He flies to London and she stays in New York wishing she had said more.'],
       ['london-boy', 'She crosses over and takes the giddy tourist’s tour of his city.'],
@@ -464,43 +456,43 @@ const grid = (cols, rows, rx, ry) => i => ({
 });
 const EMOTIONS = [
   { id: 'rush', name: 'the rush', cx: 290, cy: 320, rx: 200, ry: 150, wash: '#eaa63c', dot: '#b8741a',
-    blurb: 'The first five minutes of anything: a drive, a doorway, a stranger across a room. These songs are written from inside the adrenaline, before anyone knows how it ends.' },
+    blurb: 'The first five minutes of anything. A drive, a doorway, a stranger across the room. Nobody in these songs knows how it ends yet.' },
   { id: 'longing', name: 'longing', cx: 800, cy: 320, rx: 215, ry: 150, wash: '#8a97cc', dot: '#4b5a96',
-    blurb: 'Wanting what is just out of reach: the boy next door, the one who left, the life in someone else’s window. The largest region of the map, which says something.' },
+    blurb: 'Wanting what is just out of reach. The boy next door, the one who left, the life in somebody else’s window. It is the biggest blob here, which feels about right.' },
   { id: 'dread', name: 'dread', cx: 1310, cy: 320, rx: 200, ry: 150, wash: '#7c808c', dot: '#3e4350',
-    blurb: 'The songs that wait for the other shoe. Fear of being left, replaced, found out; love experienced mainly as something that could be taken away.' },
+    blurb: 'Waiting for the other shoe to drop. Being left, being replaced, being found out. Love as something that could be taken away any minute.' },
   { id: 'nostalgia', name: 'nostalgia', cx: 230, cy: 800, rx: 180, ry: 150, wash: '#cfa46a', dot: '#8a6a3b',
-    blurb: 'Looking back without wanting to go back. Childhood, first loves and old selves, held up to the light and turned over.' },
+    blurb: 'Looking back without really wanting to go back. Childhood, first loves, old versions of herself.' },
   { id: 'heartbreak', name: 'heartbreak', cx: 610, cy: 800, rx: 175, ry: 150, wash: '#5f8fb8', dot: '#35607f',
-    blurb: 'The aftermath, in detail. These are the songs that remember exactly what was said, what time it was, and what got left behind.' },
+    blurb: 'The aftermath, in detail. These songs remember what was said, what time it was and what got left behind.' },
   { id: 'peace', name: 'peace', cx: 990, cy: 800, rx: 175, ry: 150, wash: '#93ba8c', dot: '#4c7a4c',
-    blurb: 'Rarer than you would expect, and hard-won. The storm has passed, the castle is gone, and it turns out to be fine.' },
+    blurb: 'There is less of this than you would think. The storm is over, the castle is gone, and she is fine.' },
   { id: 'defiance', name: 'defiance', cx: 1370, cy: 800, rx: 170, ry: 150, wash: '#d0503f', dot: '#a3322a',
-    blurb: 'Chin up, answering back. Sometimes furious, more often funny, always a refusal to be the person the story was written about.' }
+    blurb: 'Chin up, answering back. Sometimes angry, more often funny. She will not be the girl the story was written about.' }
 ];
 const PERSONAS = [
-  ['dreamer', 'the dreamer', '#c7a3d9', '#8a5fae', 'Believes in the balcony scene. She sees the ending before the first date is over, and keeps believing a little even after it goes wrong.'],
-  ['narrator', 'the narrator', '#7fae9f', '#3f7a6a', 'Steps out of her own life and tells someone else’s: a widow, a teenage boy, a friend who stayed home. The most recent of her selves, and the calmest.'],
-  ['overthinker', 'the overthinker', '#7f86b8', '#454c86', 'Awake at 2 a.m. running the numbers on every conversation. Funny about it, which does not make it stop.'],
-  ['fighter', 'the fighter', '#d9614a', '#a83a2a', 'The one who answers back, rebuilds, walks out clean. She turns up whenever the story threatens to be written by someone else.'],
-  ['performer', 'the performer', '#eaa45a', '#c26a1f', 'Knows exactly where the light is. She can play the villain, the ingénue or the trouper on cue, and wonders what is left when the costume comes off.'],
-  ['kid', 'the kid', '#e6cf6a', '#a08a1f', 'The daughter, the granddaughter, the girl on the first day of school. Every era goes back to check on her.'],
-  ['keeper', 'the keeper', '#b58a6a', '#7a5238', 'The one who remembers everything and throws nothing away: the scarf, the street, the exact minute. Her memory is the archive the whole world is built from.'],
-  ['lover', 'the lover', '#e59aa6', '#b8586a', 'Settled, at home, not performing for anyone. She shows up late and quietly, and the songs get smaller and warmer when she does.']
-].map(([id, name, wash, dot, blurb], i) => ({ id, name, wash, dot, blurb, ...grid(4, 2, 170, 150)(i) }));
+  ['dreamer', 'the dreamer', '#c7a3d9', '#8a5fae', 'She believes in the balcony scene. She can see the ending before the first date is over, and she still believes a little after it goes wrong.'],
+  ['narrator', 'the narrator', '#7fae9f', '#3f7a6a', 'She steps out of her own life to tell someone else’s. A widow, a teenage boy, a friend who stayed home. She arrived late and she is the calmest of them.'],
+  ['overthinker', 'the overthinker', '#7f86b8', '#454c86', 'Awake at 2 a.m. replaying every conversation. She is funny about it. It does not help.'],
+  ['fighter', 'the fighter', '#d9614a', '#a83a2a', 'The one who answers back, rebuilds and walks out clean. She turns up whenever someone else tries to write the story.'],
+  ['performer', 'the performer', '#eaa45a', '#c26a1f', 'She always knows where the light is. Villain, ingénue, trouper, whatever the night needs. I wonder what is left when the costume comes off. So does she.'],
+  ['kid', 'the kid', '#e6cf6a', '#a08a1f', 'The daughter, the granddaughter, the girl on the first day of school. Every album goes back to check on her.'],
+  ['keeper', 'the keeper', '#b58a6a', '#7a5238', 'She remembers everything and throws nothing away. The scarf, the street, the exact minute on the clock. Most of this map is built from what she kept.'],
+  ['lover', 'the lover', '#e59aa6', '#b8586a', 'At home, not performing for anyone. The songs get smaller and warmer when she shows up.']
+].map(([id, name, wash, dot, blurb], i) => ({ id, name, wash, dot, blurb, ...grid(4, 2, 150, 140)(i) }));
 const MINDS = [
   { id: 'prefrontal', name: 'the planner', sub: 'prefrontal cortex', cx: 370, cy: 500, rx: 160, ry: 165, wash: '#7f9fc4', dot: '#3f6491',
-    blurb: 'The front of the brain: weighing, rehearsing, taking stock. Songs that reason their way through a feeling, script an apology, or finally work out what happened.' },
+    blurb: 'The front of the brain, where the weighing and rehearsing happens. These songs think their way through a feeling, or practise an apology, or finally work out what went wrong.' },
   { id: 'motor', name: 'the body', sub: 'motor cortex', cx: 740, cy: 285, rx: 175, ry: 95, wash: '#e59a5a', dot: '#c2612f',
-    blurb: 'The strip that moves the limbs. Dancing, hitting a mark, holding a pose while the rest of the mind is somewhere else.' },
+    blurb: 'The part that moves your arms and legs. Dancing, hitting a mark, holding the pose while the rest of her is somewhere else.' },
   { id: 'dmn', name: 'the daydream', sub: 'default mode network', cx: 1150, cy: 370, rx: 200, ry: 140, wash: '#b79ad6', dot: '#7a5fa8',
-    blurb: 'What the brain does when it wanders: imagining other lives, other endings, other people’s houses. Every what-if and every invented character lives here.' },
+    blurb: 'What your brain does when you stare out of a window. Other lives, other endings, other people’s houses. Every what-if lives here.' },
   { id: 'reward', name: 'the rush', sub: 'reward circuit', cx: 640, cy: 570, rx: 150, ry: 125, wash: '#e8b83c', dot: '#b8861a',
-    blurb: 'Deep in the middle, the part that says again. Infatuation, speed, the first listen of a new city.' },
+    blurb: 'Deep in the middle, the part that says again, again. Crushes, speed, a brand new city.' },
   { id: 'hippocampus', name: 'the archive', sub: 'hippocampus', cx: 1010, cy: 680, rx: 195, ry: 140, wash: '#cf8f7a', dot: '#9a4f3f',
-    blurb: 'Where memories are filed with their time and place attached. The scarf, the porch, the minute on the clock: her most famous songs are retrievals.' },
+    blurb: 'Where a memory gets filed with its time and place. The scarf, the porch, the minute on the clock. Her most loved songs are mostly her remembering.' },
   { id: 'amygdala', name: 'the alarm', sub: 'amygdala', cx: 640, cy: 860, rx: 160, ry: 95, wash: '#8a8f9c', dot: '#464b58',
-    blurb: 'A small almond that fires before thought does. Songs of threat and flinch: being left, being replaced, the brakes going on too soon.' }
+    blurb: 'A tiny almond that fires before you can think. Being left, being replaced, the brakes going on too soon.' }
 ];
 
 /* song → [emotion, persona, mind], in the same order as SONGS */
@@ -583,21 +575,21 @@ the-life-of-a-showgirl defiance performer motor`.split('\n').forEach(line => {
 
 const LENSES = [
   { id: 'place', label: 'place', noun: 'places', regions: PLACES,
-    title: 'the universe', kicker: 'Taylor Swift, as one place',
-    intro: ['Read together, the songs describe a single world: a small town, a road out of it, a city at the end of the road, a castle on a hill, woods full of invented people, a coast, a stage, an island across the sea, and one sleepless sky over all of it.',
-            'Each dot is a song, set down where its story happens. Step into a place to see what is inside it.'] },
+    title: 'the universe', kicker: 'every Taylor Swift song, as one place',
+    intro: ['I think all her songs happen in the same world. There is a small town and a road out of it, a city at the end of the road, a castle, some woods, a coast, a stage and a rainy island across the sea. And a 2 a.m. sky over all of it.',
+            'Every dot is a song, sitting where its story happens. Click a place to step inside.'] },
   { id: 'emotion', label: 'emotion', noun: 'feelings', regions: EMOTIONS,
-    title: 'the weather', kicker: 'the same songs, sorted by feeling',
-    intro: ['Forget where the songs happen and ask what they feel like. The map redraws itself as seven climates, and the songs drift to the one they were written in.',
-            'Watch the threads: a motif that stayed in one place on the map often crosses every feeling here.'] },
+    title: 'the weather', kicker: 'same songs, sorted by feeling',
+    intro: ['What if you forget where a song happens and ask how it feels instead? The dots drift into seven kinds of weather. The bigger the blob, the more songs live in it.',
+            'Try a thread here. The car songs stay on one road on the map, but they cross almost every feeling.'] },
   { id: 'persona', label: 'persona', noun: 'selves', regions: PERSONAS,
-    title: 'the cast', kicker: 'the same songs, sorted by who is singing',
-    intro: ['She is not one narrator. Across the albums a small cast of selves takes turns at the microphone, and each has her own way of telling a story.',
-            'This lens sorts every song by which of them is speaking.'] },
+    title: 'the cast', kicker: 'same songs, sorted by who is singing',
+    intro: ['She is never just one narrator. I count eight of her, and they take turns at the microphone.',
+            'Here every song goes to whichever one is doing the talking.'] },
   { id: 'mind', label: 'mind', noun: 'parts of the mind', regions: MINDS,
-    title: 'the mind', kicker: 'the same songs, sorted by where they fire',
-    intro: ['A loose metaphor rather than neuroscience: if the whole catalogue were one brain, which part would each song light up?',
-            'Memory takes the most room. The alarm and the daydream are not far behind.'] }
+    title: 'the mind', kicker: 'same songs, sorted by where they light up',
+    intro: ['This one is a metaphor, not science. If all her songs were one brain, which part would each one light up?',
+            'Memory takes up the most room. No surprise there.'] }
 ];
 const lensById = Object.fromEntries(LENSES.map(l => [l.id, l]));
 for (const l of LENSES) l.regionById = Object.fromEntries(l.regions.map(r => [r.id, r]));
@@ -605,9 +597,17 @@ for (const l of LENSES) l.regionById = Object.fromEntries(l.regions.map(r => [r.
 /* lay each song out inside its region, once per lens: a loose sunflower
    ring that keeps the centre clear for the painted landmark */
 for (const l of LENSES) {
+  for (const p of l.regions) p.songs = SONGS.filter(s => s.where[l.id] === p.id);
+  if (l.id !== 'place') {
+    // a region's area is its share of the songs (the painted map keeps its geography)
+    const perSong = l.regions.reduce((a, p) => a + p.rx * p.ry, 0) / SONGS.length;
+    for (const p of l.regions) {
+      const f = Math.sqrt(perSong * p.songs.length / (p.rx * p.ry));
+      p.rx *= f; p.ry *= f;
+    }
+  }
   for (const p of l.regions) {
-    const list = SONGS.filter(s => s.where[l.id] === p.id);
-    p.songs = list;
+    const list = p.songs;
     list.forEach((s, i) => {
       s.pos = s.pos || {};
       if (p.id === 'sky') {
@@ -616,7 +616,8 @@ for (const l of LENSES) {
       }
       const r = Math.sqrt(0.3 + 0.7 * (i + 0.5) / list.length);
       const a = i * 2.39996 + p.cx * 0.01;
-      s.pos[l.id] = { x: p.cx + Math.cos(a) * p.rx * r, y: p.cy + Math.sin(a) * p.ry * r };
+      s.pos[l.id] = { x: Math.max(85, Math.min(W - 85, p.cx + Math.cos(a) * p.rx * r)),
+                      y: Math.max(70, Math.min(H - 80, p.cy + Math.sin(a) * p.ry * r)) };
     });
   }
 }
@@ -794,8 +795,8 @@ function paintMap(lens) {
     }
     for (const p of lens.regions) {
       for (let i = 0; i < 7; i++) {
-        blob(p.cx + rr(-0.6, 0.6) * p.rx, p.cy + rr(-0.6, 0.6) * p.ry, rr(0.5, 0.85) * Math.min(p.rx, p.ry) * 1.2,
-             p.wash, 0.24, 3, p.ry / p.rx + 0.2);
+        blob(p.cx + rr(-0.45, 0.45) * p.rx, p.cy + rr(-0.45, 0.45) * p.ry, rr(0.6, 0.85) * Math.min(p.rx, p.ry) * 1.15,
+             p.wash, 0.24, 3, 1);
       }
     }
   } else {
@@ -1101,16 +1102,16 @@ function setLens(next) {
 
 /* step into a region: the map scales up around it, dots become objects */
 function setZoom(region) {
-  zoom = region ? Math.max(1, Math.min(3.4, W / (2.5 * region.rx), H / (2.5 * region.ry))) : 1;
+  zoom = region ? Math.max(1, Math.min(3.4, W / (2.5 * region.rx), H / (2.9 * region.ry))) : 1;
   const clamp = v => Math.min(0, Math.max(1 - zoom, v));
   const tx = region ? clamp(0.5 - region.cx / W * zoom) : 0;
   const ty = region ? clamp(0.5 - region.cy / H * zoom) : 0;
   zoomer.style.transform = `translate(${tx * 100}%, ${ty * 100}%) scale(${zoom})`;
   svg.classList.toggle('entered', !!region);
-  tipText.setAttribute('font-size', 17 / zoom);
+  tipText.setAttribute('font-size', 26 / zoom);
   tipText.style.strokeWidth = 6 / zoom + 'px';
   if (!region) return;
-  const fs = Math.max(8, Math.min(15, 24 / zoom));
+  const fs = Math.max(11, Math.min(20, 34 / zoom));
   region.songs.forEach((s, i) => {
     const art = !!ARTIFACTS[s.id];
     const above = region.id === 'sky' && i % 2;
@@ -1126,7 +1127,7 @@ function showTip(s) {
   tipText.textContent = s.title;
   const half = tipText.getComputedTextLength() / 2 + 10;
   tipText.setAttribute('x', Math.min(W - half, Math.max(half, s.x)));
-  tipText.setAttribute('y', s.y < 60 ? s.y + 34 : s.y - 20);
+  tipText.setAttribute('y', s.y < 60 ? s.y + 40 : s.y - 18);
 }
 
 /* ================================================================
@@ -1229,7 +1230,7 @@ function render() {
           ${mark(t)}
           <span class="t">${t.name}<small>${t.stops.length} songs</small></span>
         </a></li>`).join('')}</ul>
-      <p class="note" style="margin-top:22px">The descriptions are paraphrases of each song’s imagery, not quoted lyrics. A few threads are connections she has confirmed herself; the sorting and the rest of the threads are one listener’s reading.</p>
+      <p class="note" style="margin-top:22px">None of the song notes are lyrics. They are my own descriptions of what each song pictures. She has confirmed a few of the threads herself. The rest, and all of the sorting, is just how I hear it.</p>
       <a class="paint-link" href="index.html">the paintings →</a>`;
   } else if (region) {
     html = `
@@ -1237,14 +1238,14 @@ function render() {
       <h1>${region.name}</h1>
       <div class="kicker">${region.sub ? region.sub + ' · ' : ''}${region.songs.length} songs live here</div>
       <p>${region.blurb}</p>
-      ${world ? '<p class="note">You are standing in it. Every song is something on this block: move over the street and see what answers.</p>' : ''}
+      ${world ? '<p class="note">You are standing on the street now. Every song is something on this block. Move around and see what answers.</p>' : ''}
       <ul class="rows">${region.songs.map(s => songRow(s, '·', s.image)).join('')}</ul>`;
   } else if (thread) {
     html = `
       <a class="back" href="${link()}">← the whole map</a>
       <h1>${thread.name}</h1>
       <div class="kicker">a thread through ${new Set(thread.stops.map(s => songById[s[0]].where[lens.id])).size} ${lens.noun}</div>
-      <span class="tag">${thread.canon ? 'confirmed by her' : 'a reading'}</span>
+      <span class="tag">${thread.canon ? 'she has said this herself' : 'my own theory'}</span>
       <p>${thread.blurb}</p>
       <ul class="rows">${thread.stops.map(([sid, note], i) => songRow(songById[sid], i + 1, note)).join('')}</ul>`;
   } else {
@@ -1284,6 +1285,34 @@ function render() {
     a.addEventListener('mouseleave', () => t.path.classList.remove('peek'));
   });
 }
+
+/* the painting has no frame: its edge is a torn, bleeding wash, so the
+   world sits on the paper instead of inside a box */
+(function softEdge() {
+  const rand = mulberry32(22), pts = [];
+  const side = (x1, y1, x2, y2, nx, ny) => {
+    const n = Math.round(Math.hypot(x2 - x1, y2 - y1) / 95);
+    for (let i = 0; i < n; i++) {
+      const inset = 34 + rand() * 46 + (rand() < 0.2 ? 30 : 0);
+      pts.push([x1 + (x2 - x1) * i / n + nx * inset, y1 + (y2 - y1) * i / n + ny * inset]);
+    }
+  };
+  side(0, 0, W, 0, 0, 1); side(W, 0, W, H, -1, 0); side(W, H, 0, H, 0, -1); side(0, H, 0, 0, 1, 0);
+  const mid = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+  let d = 'M' + mid(pts[pts.length - 1], pts[0]).map(v => v.toFixed(0));
+  pts.forEach((p, i) => { d += ` Q${p.map(v => v.toFixed(0))} ${mid(p, pts[(i + 1) % pts.length]).map(v => v.toFixed(0))}`; });
+  const svgMask = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    <filter id="f" x="0" y="0" width="${W}" height="${H}" filterUnits="userSpaceOnUse">
+      <feTurbulence type="fractalNoise" baseFrequency="0.006" numOctaves="2" seed="7"/>
+      <feDisplacementMap in="SourceGraphic" scale="95"/>
+      <feGaussianBlur stdDeviation="15"/>
+    </filter>
+    <path d="${d}Z" fill="#fff" filter="url(#f)"/></svg>`;
+  const url = `url("data:image/svg+xml,${encodeURIComponent(svgMask)}")`;
+  const map = document.querySelector('.map');
+  map.style.webkitMaskImage = url;
+  map.style.maskImage = url;
+})();
 
 buildOverlay();
 render();
