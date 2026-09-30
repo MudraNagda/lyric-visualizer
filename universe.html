@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>the universe — lyric visualizer</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --eggshell: #f4efe4;
+    --ink: #4a4438;
+    --soft: #8a8272;
+    --line: rgba(74,68,56,0.18);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--eggshell);
+    font-family: 'Inter', -apple-system, 'Helvetica Neue', sans-serif;
+    color: var(--ink);
+  }
+
+  .wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 370px;
+    height: 100vh;
+  }
+  .mapcol {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 8px 16px 20px;
+    overflow: auto;
+    min-width: 0;
+  }
+  .map {
+    position: relative;
+    aspect-ratio: 1600 / 1100;
+    width: min(100%, calc((100vh - 84px) * 1600 / 1100));
+    flex: none;
+  }
+  .map canvas, .map svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .map { overflow: hidden; border-radius: 14px; }
+  .zoomer {
+    position: absolute; inset: 0;
+    transform-origin: 0 0;
+    transition: transform 1.2s cubic-bezier(0.6, 0, 0.2, 1);
+  }
+  .map canvas { transition: opacity 0.3s ease; }
+  .map #scene { opacity: 0; pointer-events: none; transition: opacity 0.7s ease; }
+  .map.in-scene #scene { opacity: 1; pointer-events: auto; transition: opacity 0.9s ease 0.8s; }
+
+  .lenses {
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    margin-bottom: 14px;
+    font-size: 0.72rem; letter-spacing: 0.16em; text-transform: lowercase;
+  }
+  .lenses span { color: var(--soft); margin-right: 6px; }
+  .lenses a {
+    border: 1px solid rgba(74,68,56,0.28); border-radius: 999px;
+    padding: 6px 16px; color: var(--ink); text-decoration: none; opacity: 0.65;
+    transition: opacity 0.25s ease, background 0.25s ease, color 0.25s ease;
+  }
+  .lenses a:hover { opacity: 1; }
+  .lenses a.on { background: var(--ink); color: var(--eggshell); opacity: 1; }
+
+  /* ---- overlay ---- */
+  .place-label {
+    font-size: 19px;
+    font-style: italic;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    fill: var(--ink);
+    text-anchor: middle;
+    cursor: pointer;
+    paint-order: stroke;
+    stroke: rgba(244,239,228,0.75);
+    stroke-width: 5px;
+    stroke-linejoin: round;
+    transition: opacity 0.4s ease;
+  }
+  .place-label.night { fill: #f4efe4; stroke: rgba(35,38,79,0.55); }
+  .place-label:hover { text-decoration: underline; }
+  .place-label.dim { opacity: 0.35; }
+  svg.entered .place-label { opacity: 0; pointer-events: none; }
+
+  .thread {
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0.3;
+    transition: opacity 0.5s ease, stroke-width 0.3s ease;
+  }
+  .thread.peek { opacity: 0.85; stroke-width: 3.5; }
+  .thread.on { opacity: 0.85; stroke-width: 3.5; }
+  .thread.off { opacity: 0; }
+
+  .song { cursor: pointer; transition: opacity 0.4s ease, transform 1.1s cubic-bezier(0.6, 0, 0.2, 1); outline: none; }
+  .song .dot { transition: r 0.2s ease, opacity 0.4s ease; }
+  .song .art {
+    opacity: 0; transform: scale(0.3); pointer-events: none;
+    transition: opacity 0.5s ease 0.5s, transform 0.6s cubic-bezier(0.3, 1.4, 0.5, 1) 0.5s;
+  }
+  .song .title {
+    font-style: italic; font-weight: 500; text-anchor: middle; fill: #2f2a22;
+    paint-order: stroke; stroke: rgba(244,239,228,0.85); stroke-linejoin: round;
+    opacity: 0; pointer-events: none; transition: opacity 0.4s ease;
+  }
+  .song.night .title { fill: #f4efe4; stroke: rgba(35,38,79,0.6); }
+  svg.entered .song.here .title { opacity: 1; transition-delay: 0.7s; }
+  svg.entered .song.here.has-art .dot { opacity: 0; }
+  svg.entered .song.here.has-art .art { opacity: 1; transform: scale(1); }
+  svg.entered .song.here.has-art:hover .art, svg.entered .song.here.has-art.hot .art,
+  svg.entered .song.here.has-art.sel .art { transform: scale(1.18); transition-delay: 0s; }
+  svg.entered .song:not(.here) { opacity: 0; pointer-events: none; }
+  .song .dot { stroke: var(--eggshell); stroke-width: 2; transition: r 0.2s ease; }
+  .song.night .dot { stroke: #23264f; }
+  .song .num {
+    font-size: 11px; font-weight: 600; text-anchor: middle; dominant-baseline: central;
+    fill: #fff; pointer-events: none; display: none;
+  }
+  .song.night .num { fill: #23264f; }
+  .song.dim { opacity: 0.16; }
+  .song:hover .dot, .song.hot .dot, .song:focus-visible .dot { r: 10; }
+  .song.stop .dot { r: 11; }
+  .song.stop .num { display: block; }
+  .song.sel .dot { r: 12; stroke: var(--ink); }
+
+  #tip { pointer-events: none; }
+  #tip text {
+    font-size: 17px; font-style: italic; font-weight: 500;
+    text-anchor: middle; fill: #2f2a22;
+    paint-order: stroke; stroke: #f4efe4; stroke-width: 6px; stroke-linejoin: round;
+  }
+
+  /* ---- panel ---- */
+  .panel {
+    border-left: 1px solid var(--line);
+    padding: 34px 30px 60px;
+    overflow-y: auto;
+    line-height: 1.55;
+  }
+  .panel h1 { font-size: 1.25rem; font-style: italic; font-weight: 500; margin-bottom: 4px; }
+  .kicker {
+    font-size: 0.68rem; letter-spacing: 0.22em; color: var(--soft);
+    text-transform: uppercase; margin-bottom: 14px;
+  }
+  .panel p { font-size: 0.88rem; margin-bottom: 14px; }
+  .panel p.note { font-size: 0.76rem; color: var(--soft); }
+  .panel h2 {
+    font-size: 0.68rem; letter-spacing: 0.22em; color: var(--soft);
+    text-transform: uppercase; font-weight: 500; margin: 26px 0 8px;
+  }
+  .back {
+    display: inline-block; font-size: 0.72rem; letter-spacing: 0.14em; color: var(--soft);
+    text-decoration: none; margin-bottom: 22px;
+  }
+  .back:hover { color: var(--ink); }
+  .rows { list-style: none; }
+  .rows li { border-top: 1px solid var(--line); }
+  .rows li:last-child { border-bottom: 1px solid var(--line); }
+  .rows a {
+    display: grid; grid-template-columns: 22px 1fr; gap: 2px 8px; align-items: baseline;
+    padding: 10px 2px; text-decoration: none; color: inherit;
+  }
+  .rows a:hover .t { text-decoration: underline; }
+  .rows .mark { width: 10px; height: 10px; border-radius: 50%; display: inline-block; transform: translateY(1px); }
+  .rows .n { font-size: 0.72rem; color: var(--soft); font-variant-numeric: tabular-nums; }
+  .rows .t { font-size: 0.9rem; font-style: italic; font-weight: 500; }
+  .rows .t small { font-style: normal; font-weight: 400; font-size: 0.7rem; color: var(--soft); letter-spacing: 0.04em; margin-left: 6px; }
+  .rows .d { grid-column: 2; font-size: 0.8rem; color: #6a6354; }
+  .tag {
+    display: inline-block; font-size: 0.62rem; letter-spacing: 0.16em; text-transform: uppercase;
+    border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; color: var(--soft);
+    margin-bottom: 14px;
+  }
+  .paint-link {
+    display: inline-block; border: 1px solid rgba(74,68,56,0.28); border-radius: 999px;
+    padding: 7px 18px; font-size: 0.72rem; letter-spacing: 0.16em; color: var(--ink);
+    text-decoration: none; opacity: 0.75;
+  }
+  .paint-link:hover { opacity: 1; }
+
+  @media (max-width: 880px) {
+    .wrap { display: block; height: auto; }
+    .mapcol { display: block; padding: 14px 0 6px 14px; }
+    .lenses { position: sticky; left: 0; }
+    .map { width: 860px; }
+    .panel { border-left: none; border-top: 1px solid var(--line); padding: 26px 20px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="mapcol">
+    <nav class="lenses" id="lenses"></nav>
+    <div class="map">
+      <div class="zoomer" id="zoomer">
+      <canvas id="paint"></canvas>
+      <svg id="overlay" viewBox="0 0 1600 1100" aria-label="map of the songs">
+        <defs>
+          <filter id="wobble" filterUnits="userSpaceOnUse" x="0" y="0" width="1600" height="1100">
+            <feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="2" seed="4" result="n"/>
+            <feDisplacementMap in="SourceGraphic" in2="n" scale="9"/>
+          </filter>
+        </defs>
+        <g id="labels"></g>
+        <g id="threads" filter="url(#wobble)"></g>
+        <g id="songs"></g>
+        <g id="tip"><text></text></g>
+      </svg>
+      </div>
+      <canvas id="scene"></canvas>
+    </div>
+  </div>
+  <aside class="panel" id="panel"></aside>
+</div>
+
+<script src="worlds/kit.js"></script>
+<script src="worlds/city.js"></script>
+<script>
+/* ================================================================
+   The world: places, songs, and the threads that tie them together.
+   Every description is a paraphrase of a song's imagery — no lyrics.
+   ================================================================ */
+const W = 1600, H = 1100;
+
+const PLACES = [
+  { id: 'sky', name: 'the 2 a.m. sky', cx: 800, cy: 92, rx: 640, ry: 40, wash: '#2c2f5c', dot: '#f6e7b0',
+    blurb: 'The hour when everything in this world gets confessed. The sleepless songs hang over every other place like stars: whatever happens down in the town, the city or the woods, someone is awake up here thinking about it.' },
+  { id: 'castle', name: 'the storybook kingdom', cx: 270, cy: 390, rx: 175, ry: 125, wash: '#b9a3d6', dot: '#7a5fa8',
+    blurb: 'Balconies, crowns, white horses. She builds the fairy tale early, then spends twenty years testing it: knocking the castle down, living in the rubble, and deciding which parts were worth keeping.' },
+  { id: 'woods', name: 'the folklore woods', cx: 770, cy: 385, rx: 215, ry: 130, wash: '#6f8f6a', dot: '#3f6141',
+    blurb: 'Where she stops writing as herself. The woods are full of invented people, inherited memories and childhood, all told quietly and from a distance, as if found in an old cabin.' },
+  { id: 'london', name: 'across the sea', cx: 1405, cy: 315, rx: 130, ry: 82, wash: '#8d97a6', dot: '#566070',
+    blurb: 'A grey island reached by longing first, then by plane. Songs go there full of hope, stay for years, and the last ones look back at it from the far shore.' },
+  { id: 'town', name: 'the small town', cx: 255, cy: 770, rx: 190, ry: 145, wash: '#e2b75c', dot: '#9a7420',
+    blurb: 'Porch lights, pickup trucks, bleachers, a high-school hallway. Everything starts here, and the later albums keep sending people back: for the holidays, for an apology, to see who stayed.' },
+  { id: 'road', name: 'the autumn road', cx: 620, cy: 655, rx: 150, ry: 118, wash: '#c9643a', dot: '#a3432a',
+    blurb: 'The road out of town, always driven in the fall. Most of the great romances happen in a moving car somewhere along it, and most of the wrecks too.' },
+  { id: 'city', name: 'the city', cx: 1015, cy: 650, rx: 175, ry: 128, wash: '#5f6f9c', dot: '#3d4a78',
+    blurb: 'Where the road ends: rented apartments, dive bars, lit windows. The city is where love gets specific (a street, a block, a front door) and where losing it means losing the map.' },
+  { id: 'coast', name: 'the coast', cx: 1395, cy: 680, rx: 140, ry: 165, wash: '#7fbfb5', dot: '#2f7d78',
+    blurb: 'Salt air and one particular house above the water. Summer lives here: flings that end in August, storms that rinse things out, tides that take love away and bring it back.' },
+  { id: 'stage', name: 'the stage', cx: 800, cy: 945, rx: 205, ry: 100, wash: '#e58a5a', dot: '#c2552f',
+    blurb: 'Spotlights, sequins, a hall of mirrors. From her second album onward she keeps returning here to ask what fame does to the woman in the middle of it, and who gets pushed on when she is done.' }
+];
+
+const SONGS = [
+  // the 2 a.m. sky
+  ['The Way I Loved You', 'Fearless', 'sky', 'A screaming match in the rain at two in the morning, missed more than the polite, sensible love that replaced it.'],
+  ['Enchanted', 'Speak Now', 'sky', 'Pacing the floor wide awake after meeting a stranger, replaying the conversation and hoping nobody is waiting for him at home.'],
+  ['Last Kiss', 'Speak Now', 'sky', 'A goodbye remembered down to the minute on the clock, just before two.'],
+  ['Never Grow Up', 'Speak Now', 'sky', 'A nightlight in a child’s room, and then, years later, the first cold night alone in a new apartment.', 1],
+  ['I Wish You Would', '1989', 'sky', 'Headlights sliding past a window at 2 a.m., two people thinking the same thing on either side of the glass.'],
+  ['The Archer', 'Lover', 'sky', 'Lying awake taking inventory of every exit she has ever taken, asking who could possibly stay.'],
+  ['Anti-Hero', 'Midnights', 'sky', 'The night shift of the mind: a sleepless audit of her own flaws, delivered almost as a joke.'],
+  ['Midnight Rain', 'Midnights', 'sky', 'Two people cast as weather: one a clear, steady day, the other a downpour after dark that could not stay put.'],
+  ['You’re On Your Own, Kid', 'Midnights', 'sky', 'A whole life replayed in one sitting, from waiting around in a hometown to realising that being alone was never the danger.'],
+
+  // the storybook kingdom
+  ['Love Story', 'Fearless', 'castle', 'A balcony, a disapproving father, and the famous tragedy rewritten so it ends with a ring instead of a tomb.'],
+  ['White Horse', 'Fearless', 'castle', 'The fairy tale called off: nobody is riding in to rescue her, and this was only ever a small town.'],
+  ['Long Live', 'Speak Now', 'castle', 'Crowns worn for one night, dragons fought alongside a band of friends, and a plea to be remembered for it.'],
+  ['Castles Crumbling', 'Speak Now (vault)', 'castle', 'A once-adored ruler watching the walls come down and the crowd turn.'],
+  ['New Romantics', '1989', 'castle', 'Every brick thrown at her gets saved and used as building material.'],
+  ['Call It What You Want', 'reputation', 'castle', 'The castle is gone overnight, and she notices she is doing better without it.'],
+  ['King of My Heart', 'reputation', 'castle', 'Royalty redefined as a single person. No palace, no fancy cars, no court required.'],
+  ['The Fate of Ophelia', 'The Life of a Showgirl', 'castle', 'A heroine written to drown is pulled out of her tower and her ending before the last act.'],
+
+  // the folklore woods
+  ['cardigan', 'folklore', 'woods', 'Feeling like an old sweater forgotten under a bed until someone picks it up and wears it; young love recalled by streetlight.'],
+  ['seven', 'folklore', 'woods', 'A swing high over a creek at age seven, and a plan to rescue a friend from a house that was not safe.'],
+  ['the 1', 'folklore', 'woods', 'A shrug and a what-if: how nice it would have been if that one person had been the one.'],
+  ['invisible string', 'folklore', 'woods', 'A single gold thread that was quietly tying two strangers together through every wrong turn.'],
+  ['willow', 'evermore', 'woods', 'Following a glowing thread through the trees; love as something that bends her like a branch in wind.'],
+  ['ivy', 'evermore', 'woods', 'A stone house slowly covered in vines: a married woman overgrown by a love she did not plan.'],
+  ['marjorie', 'evermore', 'woods', 'A grandmother’s advice still arriving, as if she had only stepped into the next room.'],
+  ['evermore', 'evermore', 'woods', 'A long grey winter on a cabin porch, until the pain stops feeling permanent.'],
+
+  // across the sea
+  ['Come Back… Be Here', 'Red', 'london', 'He boards a plane for London and she is left in New York wishing she had said more.'],
+  ['London Boy', 'Lover', 'london', 'A tourist’s giddy lap of his city: markets, pubs, the back of a scooter.'],
+  ['the lakes', 'folklore', 'london', 'Wanting to vanish into the northern hills where the old poets went, with one person and no audience.'],
+  ['So Long, London', 'The Tortured Poets Department', 'london', 'A farewell to the city and to everything she wore herself out keeping alive there.'],
+  ['The Black Dog', 'The Tortured Poets Department', 'london', 'Watching from far away as a dot on a map walks into a pub without her.'],
+
+  // the small town
+  ['Tim McGraw', 'Taylor Swift', 'town', 'A pickup that gets stuck on back roads, a summer ending, a letter left on a doorstep.'],
+  ['Our Song', 'Taylor Swift', 'town', 'A slamming screen door, a hushed late phone call, a tap on the window: ordinary sounds claimed as a couple’s song.'],
+  ['Teardrops on My Guitar', 'Taylor Swift', 'town', 'A classroom crush who talks about someone else, and a guitar waiting at home to hear about it.'],
+  ['Mary’s Song', 'Taylor Swift', 'town', 'Two kids in a backyard who grow old on the same front porch.'],
+  ['Fifteen', 'Fearless', 'town', 'The first morning through the high-school doors, when a hallway feels like the entire world.'],
+  ['You Belong With Me', 'Fearless', 'town', 'Two bedroom windows facing each other, and the girl in the bleachers who understands him best.'],
+  ['betty', 'folklore', 'town', 'A seventeen-year-old on a skateboard rehearsing an apology on the way to a party at her house.'],
+  ['’tis the damn season', 'evermore', 'town', 'Home at her parents’ house for the holidays, where the road not taken looks good for a weekend.'],
+  ['dorothea', 'evermore', 'town', 'The one who stayed, watching an old friend on a screen and keeping a place for her.'],
+
+  // the autumn road
+  ['Fearless', 'Fearless', 'road', 'A slow drive down a rain-slick street, wanting to get out and dance in the storm in her best dress.'],
+  ['Red', 'Red', 'road', 'A love filed by colour: the blue of losing, the grey of missing, and the loud shade it actually was.'],
+  ['Treacherous', 'Red', 'road', 'Headlights on a drive home she knows is a risk, taken anyway.'],
+  ['All Too Well', 'Red', 'road', 'A drive upstate under falling leaves, a scarf left in a drawer, a dance in a kitchen lit only by the open fridge.', 3],
+  ['Begin Again', 'Red', 'road', 'A café on a Wednesday: one first date that lets eight months of hurt go.'],
+  ['Style', '1989', 'road', 'Headlights off on a long midnight drive, a pair who never quite go out of fashion with each other.'],
+  ['Out of the Woods', '1989', 'road', 'A sudden brake, stitches, a hospital room, and the same anxious question asked again and again.'],
+  ['Getaway Car', 'reputation', 'road', 'A heist movie where the escape vehicle is a rebound, and she is the one who drives off alone.'],
+
+  // the city
+  ['Holy Ground', 'Red', 'city', 'A brief love remembered at a sprint: the city blocks they walked treated as somewhere sacred.'],
+  ['Welcome to New York', '1989', 'city', 'Boxes dropped on an apartment floor and a decision to be somebody new.'],
+  ['How You Get the Girl', '1989', 'city', 'Standing at her door in the pouring rain after six months away, with instructions for what to say.', 2],
+  ['Delicate', 'reputation', 'city', 'A dive bar on the east side, a name at its lowest, and the careful question of whether it is too soon.'],
+  ['Cornelia Street', 'Lover', 'city', 'A rented place in the Village and a street she could never walk down again if this ended.'],
+  ['Cruel Summer', 'Lover', 'city', 'Slipping through a garden gate, crying in the back of a car, finally shouting the true thing.'],
+  ['Lover', 'Lover', 'city', 'Christmas lights left up into January; a home where the two of them make the rules.'],
+  ['Daylight', 'Lover', 'city', 'She corrects her own colour theory: love is not the loud red she once wrote about but the gold of morning.'],
+  ['Maroon', 'Midnights', 'city', 'Cheap wine on a shirt, a flushed cheek: the red of an old love gone a shade darker with time.'],
+  ['I Look in People’s Windows', 'The Tortured Poets Department', 'city', 'Walking past lit windows at night, hoping to catch one face at someone else’s dinner table.', 0],
+
+  // the coast
+  ['Starlight', 'Red', 'coast', 'The summer of 1945: two teenagers sneaking into a yacht-club party and dancing like they own it.'],
+  ['This Love', '1989', 'coast', 'A love that goes out with the tide and, against the odds, comes back in.'],
+  ['Clean', '1989', 'coast', 'A long drought broken by a storm; coming up for air finally rinsed of someone.'],
+  ['the last great american dynasty', 'folklore', 'coast', 'A house on the Rhode Island shore, the scandalous widow who owned it, and the woman who bought it afterwards.'],
+  ['august', 'folklore', 'coast', 'Salt air and a summer that slipped away: the girl who knew he was never hers to lose.'],
+  ['coney island', 'evermore', 'coast', 'A cold bench on an off-season boardwalk, wondering where the two of them went.'],
+  ['Florida!!!', 'The Tortured Poets Department', 'coast', 'The escape hatch: a sunburnt state where people go to become someone else for a while.'],
+
+  // the stage
+  ['The Lucky One', 'Red', 'stage', 'A starlet who got everything, then vanished to tend a garden. The singer starts to envy her.'],
+  ['Nothing New', 'Red (vault)', 'stage', 'Twenty-two and already afraid of the day a fresher face takes her place.'],
+  ['Blank Space', '1989', 'stage', 'The tabloid caricature played completely straight, mansion and all.'],
+  ['Look What You Made Me Do', 'reputation', 'stage', 'Her former selves lined up and declared dead; a villain built out of other people’s headlines.'],
+  ['mirrorball', 'folklore', 'stage', 'Spinning on tiptoe, showing everyone in the room themselves, still performing after the crowd goes home.'],
+  ['Clara Bow', 'The Tortured Poets Department', 'stage', 'Each new star told she resembles the last one, in a line that finally arrives at her own name.'],
+  ['I Can Do It With a Broken Heart', 'The Tortured Poets Department', 'stage', 'Hitting every mark in sequins, grinning, while coming apart underneath.'],
+  ['The Life of a Showgirl', 'The Life of a Showgirl', 'stage', 'A veteran performer warns a young fan off the life. The fan signs up anyway.']
+].map(([title, album, place, image, painted]) => ({
+  id: title.toLowerCase().replace(/[’'!….,]/g, '').trim().replace(/\s+/g, '-'),
+  title, album, place, image, painted
+}));
+
+const THREADS = [
+  { id: 'triangle', name: 'the love triangle', color: '#8d6fc2', canon: true,
+    blurb: 'One teenage summer told three times. She has said these songs are the same story from each corner: the girl who was left, the girl he left her for, and the boy who did it.',
+    stops: [
+      ['cardigan', 'Betty, years later, remembering being seventeen and knowing he would come back.'],
+      ['august', 'The other girl’s version: a summer she always understood was borrowed.'],
+      ['betty', 'James finally tells it himself, practising an apology on the way to her porch.']
+    ] },
+  { id: 'home', name: 'leaving home, coming back', color: '#8a6a3b', canon: true,
+    blurb: 'The small town is never just the past. Someone leaves it on the first album, and fourteen years later two linked songs show the same homecoming from both sides.',
+    stops: [
+      ['tim-mcgraw', 'Summer ends, someone leaves, and a letter stays behind on a doorstep.'],
+      ['fifteen', 'The town at its largest, when a school hallway is the whole world.'],
+      ['welcome-to-new-york', 'The leap itself: arriving somewhere big and deciding to be new.'],
+      ['youre-on-your-own-kid', 'The entire journey in one song, from waiting around at home to the life she built alone.'],
+      ['tis-the-damn-season', 'The one who left comes back for the holidays and falls into an old habit.'],
+      ['dorothea', 'The same visit from the one who stayed, still keeping a place for her.']
+    ] },
+  { id: 'car', name: 'the getaway car', color: '#b5452f',
+    blurb: 'Almost every romance in this world happens in a moving vehicle. The car starts as freedom, becomes the place where memory is made, crashes, and is finally named for what it was: an escape.',
+    stops: [
+      ['tim-mcgraw', 'It begins in a truck that tends to get stuck on back roads.'],
+      ['fearless', 'A slow drive through town on wet pavement, first-date nerves in the passenger seat.'],
+      ['treacherous', 'She knows the drive home is a risk and takes it.'],
+      ['all-too-well', 'He nearly runs a red light looking at her; the drive upstate becomes the memory she cannot put down.'],
+      ['style', 'Headlights off at midnight, a couple that keeps circling back.'],
+      ['out-of-the-woods', 'The car finally crashes: brakes too soon, stitches, a hospital room.'],
+      ['getaway-car', 'She names the pattern. Nothing good begins with fleeing the scene.'],
+      ['cruel-summer', 'Still in the back seat, crying on the way home, saying the true thing out loud.']
+    ] },
+  { id: 'rain', name: 'rain', color: '#4f86a8',
+    blurb: 'Weather does the emotional work. Rain starts as the thing you dance in, becomes the setting for every big scene, washes a person out of her system, and ends up being who she is.',
+    stops: [
+      ['fearless', 'Rain as a dare: get out of the car and dance in it.'],
+      ['the-way-i-loved-you', 'A fight in the rain at 2 a.m., remembered as the real thing.'],
+      ['how-you-get-the-girl', 'Rain as a stage direction for a grand apology at the door.'],
+      ['clean', 'The storm that finally rinses someone out.'],
+      ['midnight-rain', 'Now she is the rain: the one who could not be the calm, sunny life he wanted.']
+    ] },
+  { id: 'growing', name: 'growing up', color: '#6f8f4e',
+    blurb: 'A running conversation between her older and younger selves. The early songs beg time to slow down; the later ones go back to reassure the child that it turned out fine.',
+    stops: [
+      ['never-grow-up', 'A lullaby to a child that turns into a note to herself in a first apartment.'],
+      ['seven', 'Childhood before fear, remembered from the top of a swing’s arc.'],
+      ['fifteen', 'First heartbreak, and a promise to her younger self that there is more than this.'],
+      ['nothing-new', 'Twenty-two and already worried about being replaced.'],
+      ['youre-on-your-own-kid', 'The discovery that being on her own was survivable all along.'],
+      ['marjorie', 'What gets handed down: a grandmother’s advice still steering her.']
+    ] },
+  { id: 'fairy', name: 'the fairy tale and its ruins', color: '#b46aa6',
+    blurb: 'She rewrites a tragedy into a happy ending at eighteen, then keeps interrogating it: the prince fails, the castle falls, the crown is redefined. Seventeen years later she plays the same trick again on a different doomed heroine.',
+    stops: [
+      ['love-story', 'The tragedy rewritten so the lovers get a proposal.'],
+      ['white-horse', 'The first crack: no rescue is coming.'],
+      ['long-live', 'The crowns become real for one night, with a band for a court.'],
+      ['castles-crumbling', 'The kingdom turns on its ruler.'],
+      ['new-romantics', 'She rebuilds using the bricks thrown at her.'],
+      ['call-it-what-you-want', 'The castle falls overnight and she finds she does not need it.'],
+      ['king-of-my-heart', 'Royalty reduced to one person, no palace required.'],
+      ['the-fate-of-ophelia', 'Another doomed heroine saved from her written ending, the first song’s move made again.']
+    ] },
+  { id: 'colour', name: 'a theory of colour', color: '#c99a1e', canon: true,
+    blurb: 'She assigns love a colour in 2012 and then revises it in public. The later song answers the earlier one directly, and the gold keeps returning after that.',
+    stops: [
+      ['red', 'Love sorted by colour. The loud one wins.'],
+      ['daylight', 'She looks back at that old claim and corrects it: love turned out to be golden.'],
+      ['invisible-string', 'Gold again, now as a thread that was tying two lives together all along.'],
+      ['maroon', 'Red revisited after it has dried and darkened.']
+    ] },
+  { id: 'showgirl', name: 'the showgirl', color: '#e2703a',
+    blurb: 'A twelve-year argument with fame. It begins as a cautionary tale about someone else, turns into satire, then confession, and ends with her as the veteran giving the warning.',
+    stops: [
+      ['the-lucky-one', 'A cautionary tale about a star who walked away. She half wants to follow.'],
+      ['nothing-new', 'The fear of the next ingénue, years before it could come true.'],
+      ['blank-space', 'She puts on the costume the tabloids made for her.'],
+      ['look-what-you-made-me-do', 'The costume becomes armour; the old selves are retired.'],
+      ['the-last-great-american-dynasty', 'A woman the whole town gossiped about, and the narrator reveals she bought her house.'],
+      ['mirrorball', 'The quiet admission underneath: she is still trying to be what everyone wants to see.'],
+      ['clara-bow', 'The line of replaced stars reaches her own name.'],
+      ['i-can-do-it-with-a-broken-heart', 'The show goes on, brilliantly, while she is falling apart.'],
+      ['the-life-of-a-showgirl', 'Now she is the veteran warning the newcomer, who does not listen either.']
+    ] },
+  { id: 'doors', name: 'doors and windows', color: '#3f6f78',
+    blurb: 'People in these songs are forever on one side of a threshold: tapping on the glass, watching from across the way, turning up on a porch. By the end she is simply outside, looking in.',
+    stops: [
+      ['our-song', 'A tap on the window is part of the couple’s private soundtrack.'],
+      ['you-belong-with-me', 'Two bedroom windows facing each other across the gap.'],
+      ['how-you-get-the-girl', 'He stands at her door in the rain and waits to be let in.'],
+      ['cruel-summer', 'Slipping in through the garden gate so nobody sees.'],
+      ['betty', 'Showing up on her porch in the middle of a party.'],
+      ['i-look-in-peoples-windows', 'No door opens this time. She walks past other people’s lit rooms looking for one face.']
+    ] },
+  { id: 'sea', name: 'the crossing', color: '#5a6a8a',
+    blurb: 'An ocean sits between two of her cities. One song watches someone fly over it; years later she crosses herself, stays, and then has to write the way back.',
+    stops: [
+      ['come-back-be-here', 'He flies to London and she stays in New York wishing she had said more.'],
+      ['london-boy', 'She crosses over and takes the giddy tourist’s tour of his city.'],
+      ['the-lakes', 'Further north, wanting to disappear into the hills with one person.'],
+      ['so-long-london', 'The farewell to the city and to what she tried to keep alive there.'],
+      ['the-black-dog', 'Afterwards, watching from far away as he walks into a pub.']
+    ] }
+];
+
+const songById = Object.fromEntries(SONGS.map(s => [s.id, s]));
+const threadById = Object.fromEntries(THREADS.map(t => [t.id, t]));
+
+/* ---- the other lenses: the same songs, sorted a different way ---- */
+const grid = (cols, rows, rx, ry) => i => ({
+  cx: 230 + (i % cols) * (1140 / (cols - 1)), cy: rows === 1 ? 560 : 320 + Math.floor(i / cols) * 480, rx, ry
+});
+const EMOTIONS = [
+  { id: 'rush', name: 'the rush', cx: 290, cy: 320, rx: 200, ry: 150, wash: '#eaa63c', dot: '#b8741a',
+    blurb: 'The first five minutes of anything: a drive, a doorway, a stranger across a room. These songs are written from inside the adrenaline, before anyone knows how it ends.' },
+  { id: 'longing', name: 'longing', cx: 800, cy: 320, rx: 215, ry: 150, wash: '#8a97cc', dot: '#4b5a96',
+    blurb: 'Wanting what is just out of reach: the boy next door, the one who left, the life in someone else’s window. The largest region of the map, which says something.' },
+  { id: 'dread', name: 'dread', cx: 1310, cy: 320, rx: 200, ry: 150, wash: '#7c808c', dot: '#3e4350',
+    blurb: 'The songs that wait for the other shoe. Fear of being left, replaced, found out; love experienced mainly as something that could be taken away.' },
+  { id: 'nostalgia', name: 'nostalgia', cx: 230, cy: 800, rx: 180, ry: 150, wash: '#cfa46a', dot: '#8a6a3b',
+    blurb: 'Looking back without wanting to go back. Childhood, first loves and old selves, held up to the light and turned over.' },
+  { id: 'heartbreak', name: 'heartbreak', cx: 610, cy: 800, rx: 175, ry: 150, wash: '#5f8fb8', dot: '#35607f',
+    blurb: 'The aftermath, in detail. These are the songs that remember exactly what was said, what time it was, and what got left behind.' },
+  { id: 'peace', name: 'peace', cx: 990, cy: 800, rx: 175, ry: 150, wash: '#93ba8c', dot: '#4c7a4c',
+    blurb: 'Rarer than you would expect, and hard-won. The storm has passed, the castle is gone, and it turns out to be fine.' },
+  { id: 'defiance', name: 'defiance', cx: 1370, cy: 800, rx: 170, ry: 150, wash: '#d0503f', dot: '#a3322a',
+    blurb: 'Chin up, answering back. Sometimes furious, more often funny, always a refusal to be the person the story was written about.' }
+];
+const PERSONAS = [
+  ['dreamer', 'the dreamer', '#c7a3d9', '#8a5fae', 'Believes in the balcony scene. She sees the ending before the first date is over, and keeps believing a little even after it goes wrong.'],
+  ['narrator', 'the narrator', '#7fae9f', '#3f7a6a', 'Steps out of her own life and tells someone else’s: a widow, a teenage boy, a friend who stayed home. The most recent of her selves, and the calmest.'],
+  ['overthinker', 'the overthinker', '#7f86b8', '#454c86', 'Awake at 2 a.m. running the numbers on every conversation. Funny about it, which does not make it stop.'],
+  ['fighter', 'the fighter', '#d9614a', '#a83a2a', 'The one who answers back, rebuilds, walks out clean. She turns up whenever the story threatens to be written by someone else.'],
+  ['performer', 'the performer', '#eaa45a', '#c26a1f', 'Knows exactly where the light is. She can play the villain, the ingénue or the trouper on cue, and wonders what is left when the costume comes off.'],
+  ['kid', 'the kid', '#e6cf6a', '#a08a1f', 'The daughter, the granddaughter, the girl on the first day of school. Every era goes back to check on her.'],
+  ['keeper', 'the keeper', '#b58a6a', '#7a5238', 'The one who remembers everything and throws nothing away: the scarf, the street, the exact minute. Her memory is the archive the whole world is built from.'],
+  ['lover', 'the lover', '#e59aa6', '#b8586a', 'Settled, at home, not performing for anyone. She shows up late and quietly, and the songs get smaller and warmer when she does.']
+].map(([id, name, wash, dot, blurb], i) => ({ id, name, wash, dot, blurb, ...grid(4, 2, 170, 150)(i) }));
+const MINDS = [
+  { id: 'prefrontal', name: 'the planner', sub: 'prefrontal cortex', cx: 370, cy: 500, rx: 160, ry: 165, wash: '#7f9fc4', dot: '#3f6491',
+    blurb: 'The front of the brain: weighing, rehearsing, taking stock. Songs that reason their way through a feeling, script an apology, or finally work out what happened.' },
+  { id: 'motor', name: 'the body', sub: 'motor cortex', cx: 740, cy: 285, rx: 175, ry: 95, wash: '#e59a5a', dot: '#c2612f',
+    blurb: 'The strip that moves the limbs. Dancing, hitting a mark, holding a pose while the rest of the mind is somewhere else.' },
+  { id: 'dmn', name: 'the daydream', sub: 'default mode network', cx: 1150, cy: 370, rx: 200, ry: 140, wash: '#b79ad6', dot: '#7a5fa8',
+    blurb: 'What the brain does when it wanders: imagining other lives, other endings, other people’s houses. Every what-if and every invented character lives here.' },
+  { id: 'reward', name: 'the rush', sub: 'reward circuit', cx: 640, cy: 570, rx: 150, ry: 125, wash: '#e8b83c', dot: '#b8861a',
+    blurb: 'Deep in the middle, the part that says again. Infatuation, speed, the first listen of a new city.' },
+  { id: 'hippocampus', name: 'the archive', sub: 'hippocampus', cx: 1010, cy: 680, rx: 195, ry: 140, wash: '#cf8f7a', dot: '#9a4f3f',
+    blurb: 'Where memories are filed with their time and place attached. The scarf, the porch, the minute on the clock: her most famous songs are retrievals.' },
+  { id: 'amygdala', name: 'the alarm', sub: 'amygdala', cx: 640, cy: 860, rx: 160, ry: 95, wash: '#8a8f9c', dot: '#464b58',
+    blurb: 'A small almond that fires before thought does. Songs of threat and flinch: being left, being replaced, the brakes going on too soon.' }
+];
+
+/* song → [emotion, persona, mind], in the same order as SONGS */
+`the-way-i-loved-you longing dreamer reward
+enchanted rush dreamer reward
+last-kiss heartbreak keeper hippocampus
+never-grow-up nostalgia kid hippocampus
+i-wish-you-would longing overthinker dmn
+the-archer dread overthinker amygdala
+anti-hero dread overthinker prefrontal
+midnight-rain nostalgia keeper hippocampus
+youre-on-your-own-kid nostalgia kid prefrontal
+love-story rush dreamer dmn
+white-horse heartbreak dreamer prefrontal
+long-live rush performer hippocampus
+castles-crumbling dread performer amygdala
+new-romantics defiance fighter motor
+call-it-what-you-want peace lover prefrontal
+king-of-my-heart rush lover reward
+the-fate-of-ophelia peace dreamer dmn
+cardigan nostalgia narrator hippocampus
+seven nostalgia kid hippocampus
+the-1 longing overthinker dmn
+invisible-string peace lover prefrontal
+willow rush dreamer reward
+ivy longing narrator dmn
+marjorie heartbreak kid hippocampus
+evermore heartbreak overthinker amygdala
+come-back-be-here longing keeper dmn
+london-boy rush lover reward
+the-lakes longing dreamer dmn
+so-long-london heartbreak keeper hippocampus
+the-black-dog heartbreak overthinker amygdala
+tim-mcgraw nostalgia keeper hippocampus
+our-song rush kid reward
+teardrops-on-my-guitar longing dreamer dmn
+marys-song peace narrator dmn
+fifteen nostalgia kid hippocampus
+you-belong-with-me longing dreamer dmn
+betty longing narrator prefrontal
+tis-the-damn-season nostalgia narrator dmn
+dorothea longing narrator hippocampus
+fearless rush dreamer reward
+red heartbreak keeper hippocampus
+treacherous rush dreamer amygdala
+all-too-well heartbreak keeper hippocampus
+begin-again peace dreamer prefrontal
+style rush lover reward
+out-of-the-woods dread overthinker amygdala
+getaway-car defiance fighter prefrontal
+holy-ground nostalgia keeper hippocampus
+welcome-to-new-york rush dreamer reward
+how-you-get-the-girl longing narrator prefrontal
+delicate dread overthinker amygdala
+cornelia-street dread keeper amygdala
+cruel-summer rush dreamer reward
+lover peace lover reward
+daylight peace lover prefrontal
+maroon nostalgia keeper hippocampus
+i-look-in-peoples-windows longing overthinker dmn
+starlight rush narrator dmn
+this-love peace keeper hippocampus
+clean peace fighter prefrontal
+the-last-great-american-dynasty defiance narrator dmn
+august longing narrator hippocampus
+coney-island heartbreak overthinker prefrontal
+florida defiance fighter reward
+the-lucky-one dread narrator prefrontal
+nothing-new dread kid amygdala
+blank-space defiance performer motor
+look-what-you-made-me-do defiance fighter amygdala
+mirrorball longing performer motor
+clara-bow dread performer prefrontal
+i-can-do-it-with-a-broken-heart heartbreak performer motor
+the-life-of-a-showgirl defiance performer motor`.split('\n').forEach(line => {
+  const [id, emotion, persona, mind] = line.split(' ');
+  const s = songById[id];
+  s.where = { place: s.place, emotion, persona, mind };
+});
+
+const LENSES = [
+  { id: 'place', label: 'place', noun: 'places', regions: PLACES,
+    title: 'the universe', kicker: 'Taylor Swift, as one place',
+    intro: ['Read together, the songs describe a single world: a small town, a road out of it, a city at the end of the road, a castle on a hill, woods full of invented people, a coast, a stage, an island across the sea, and one sleepless sky over all of it.',
+            'Each dot is a song, set down where its story happens. Step into a place to see what is inside it.'] },
+  { id: 'emotion', label: 'emotion', noun: 'feelings', regions: EMOTIONS,
+    title: 'the weather', kicker: 'the same songs, sorted by feeling',
+    intro: ['Forget where the songs happen and ask what they feel like. The map redraws itself as seven climates, and the songs drift to the one they were written in.',
+            'Watch the threads: a motif that stayed in one place on the map often crosses every feeling here.'] },
+  { id: 'persona', label: 'persona', noun: 'selves', regions: PERSONAS,
+    title: 'the cast', kicker: 'the same songs, sorted by who is singing',
+    intro: ['She is not one narrator. Across the albums a small cast of selves takes turns at the microphone, and each has her own way of telling a story.',
+            'This lens sorts every song by which of them is speaking.'] },
+  { id: 'mind', label: 'mind', noun: 'parts of the mind', regions: MINDS,
+    title: 'the mind', kicker: 'the same songs, sorted by where they fire',
+    intro: ['A loose metaphor rather than neuroscience: if the whole catalogue were one brain, which part would each song light up?',
+            'Memory takes the most room. The alarm and the daydream are not far behind.'] }
+];
+const lensById = Object.fromEntries(LENSES.map(l => [l.id, l]));
+for (const l of LENSES) l.regionById = Object.fromEntries(l.regions.map(r => [r.id, r]));
+
+/* lay each song out inside its region, once per lens: a loose sunflower
+   ring that keeps the centre clear for the painted landmark */
+for (const l of LENSES) {
+  for (const p of l.regions) {
+    const list = SONGS.filter(s => s.where[l.id] === p.id);
+    p.songs = list;
+    list.forEach((s, i) => {
+      s.pos = s.pos || {};
+      if (p.id === 'sky') {
+        s.pos[l.id] = { x: 230 + i * (1240 / (list.length - 1)), y: p.cy + 30 * Math.sin(i * 1.9 + 0.6) };
+        return;
+      }
+      const r = Math.sqrt(0.3 + 0.7 * (i + 0.5) / list.length);
+      const a = i * 2.39996 + p.cx * 0.01;
+      s.pos[l.id] = { x: p.cx + Math.cos(a) * p.rx * r, y: p.cy + Math.sin(a) * p.ry * r };
+    });
+  }
+}
+for (const s of SONGS) s.threads = THREADS.filter(t => t.stops.some(st => st[0] === s.id));
+
+/* ================================================================
+   Artifacts: inside a world, a song is an object rather than a dot.
+   Drawn in a 40×40 box centred on the song. (The city first.)
+   ================================================================ */
+const ARTIFACTS = {
+  'cornelia-street': `
+    <rect x="-1.3" y="-8" width="2.6" height="25" fill="#9a9a96"/>
+    <rect x="-19" y="-17" width="38" height="10" rx="1.5" fill="#2f7a4f"/>
+    <text x="0" y="-9.9" font-size="4.6" textLength="31" font-weight="700" fill="#fff" stroke="none" text-anchor="middle">CORNELIA ST</text>`,
+  'holy-ground': `
+    <path d="M-5,-13 q-3,-4 0,-7 M1,-13 q3,-4 0,-7" fill="none" opacity="0.5"/>
+    <path d="M-8,-6 L8,-6 L6,16 L-6,16 Z" fill="#f6f1e6"/>
+    <path d="M-7.4,0 L7.4,0 L6.7,8 L-6.7,8 Z" fill="#b98a5a"/>
+    <rect x="-9.5" y="-10" width="19" height="4.5" rx="1.5" fill="#5d4a3a"/>`,
+  'welcome-to-new-york': `
+    <path d="M-14,-2 L14,-2 L14,15 L-14,15 Z" fill="#c99b62"/>
+    <path d="M-14,-2 L-19,-11 L-5,-11 L0,-2 Z" fill="#dab27c"/>
+    <path d="M14,-2 L19,-11 L5,-11 L0,-2 Z" fill="#dab27c"/>
+    <rect x="-2.2" y="-2" width="4.4" height="17" fill="#ecdcb4" stroke="none"/>
+    <path d="M6,6 l0,5 M4,8 l2,-2 l2,2" fill="none"/>`,
+  'how-you-get-the-girl': `
+    <path d="M-15,-17 l-1.5,4 M12,-19 l-1.5,4 M17,-9 l-1.5,4 M-19,-6 l-1.5,4" stroke="#4f86a8" fill="none"/>
+    <path d="M-17,1 Q-17,-15 0,-15 Q17,-15 17,1 Q12.75,-3 8.5,1 Q4.25,-3 0,1 Q-4.25,-3 -8.5,1 Q-12.75,-3 -17,1 Z" fill="#d9574a"/>
+    <path d="M0,-15 L0,-17 M0,1 L0,13 Q0,17 -4,17" fill="none"/>`,
+  'delicate': `
+    <path d="M-10,-11 L10,-11 L8,14 L-8,14 Z" fill="#eef5f6"/>
+    <path d="M-9.1,0 L9.1,0 L8,14 L-8,14 Z" fill="#d89a3a"/>
+    <rect x="-5" y="-4" width="7.5" height="7.5" rx="1" transform="rotate(14)" fill="#ffffff" opacity="0.85"/>
+    <path d="M10,-13 l4,-4 M13,-9 l5,-1" fill="none" opacity="0.5"/>`,
+  'cruel-summer': `
+    <rect x="-2" y="6" width="4" height="12" rx="1.6" fill="#e3c590"/>
+    <path d="M-8,8 L-8,-9 A8,8 0 0 1 8,-9 L8,8 Q8,13 5.5,13 Q3,13 3,8 Z" fill="#f07fa6"/>
+    <path d="M-8,-1 L8,-1 L8,8 Q8,13 5.5,13 Q3,13 3,8 L-8,8 Z" fill="#7fc4d6" stroke="none"/>
+    <path d="M-8,8 L-8,-9 A8,8 0 0 1 8,-9 L8,8 Q8,13 5.5,13 Q3,13 3,8 Z" fill="none"/>
+    <path d="M-4,-9 L-4,3" stroke="#fff" opacity="0.6" fill="none"/>`,
+  'lover': `
+    <path d="M-19,-8 Q-10,5 0,-2 Q10,-9 19,4" fill="none"/>
+    <ellipse cx="-14" cy="0.5" rx="2.6" ry="3.6" fill="#f3c54a"/>
+    <ellipse cx="-6.5" cy="4.2" rx="2.6" ry="3.6" fill="#e5707f"/>
+    <ellipse cx="1" cy="1.6" rx="2.6" ry="3.6" fill="#7fc4a6"/>
+    <ellipse cx="8.5" cy="-1.4" rx="2.6" ry="3.6" fill="#7f9fd6"/>
+    <ellipse cx="15.5" cy="2.8" rx="2.6" ry="3.6" fill="#f3c54a"/>`,
+  'daylight': `
+    <path d="M0,-18 L0,-13 M0,13 L0,18 M-18,0 L-13,0 M13,0 L18,0 M-12.7,-12.7 L-9.2,-9.2 M9.2,9.2 L12.7,12.7 M-12.7,12.7 L-9.2,9.2 M9.2,-9.2 L12.7,-12.7" stroke="#d9a21e" stroke-width="1.6" fill="none"/>
+    <circle r="9" fill="#f6cf58"/>`,
+  'maroon': `
+    <ellipse cx="11" cy="15" rx="6" ry="2" fill="#7a1f2e" opacity="0.55" stroke="none"/>
+    <path d="M-8,-17 L8,-17 Q8,-3 0,-2 Q-8,-3 -8,-17 Z" fill="#eef5f6"/>
+    <path d="M-7.7,-10 L7.7,-10 Q7,-3 0,-2 Q-7,-3 -7.7,-10 Z" fill="#7a1f2e" stroke="none"/>
+    <path d="M0,-2 L0,13" fill="none"/>
+    <ellipse cx="0" cy="14" rx="6.5" ry="1.8" fill="#eef5f6"/>`,
+  'i-look-in-peoples-windows': `
+    <rect x="-13" y="-16" width="26" height="29" rx="1" fill="#f6d98a"/>
+    <path d="M-2,13 Q-2,4 4,4 Q10,4 10,13 Z" fill="#3a3228" opacity="0.75" stroke="none"/>
+    <circle cx="4" cy="-0.5" r="3.4" fill="#3a3228" opacity="0.75" stroke="none"/>
+    <path d="M0,-16 L0,13 M-13,-2 L13,-2" fill="none"/>
+    <rect x="-15.5" y="13" width="31" height="3.2" rx="1" fill="#d8cdb8"/>`
+};
+
+/* ================================================================
+   Painting the map
+   ================================================================ */
+const INK = '#3a3228';
+
+function mulberry32(a) {
+  return function() {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function paintMap(lens) {
+  const cv = document.createElement('canvas');
+  const K = 2;
+  cv.width = W * K; cv.height = H * K;
+  const g = cv.getContext('2d');
+  g.scale(K, K);
+  const rand = mulberry32(1989);
+  const rr = (a, b) => a + rand() * (b - a);
+
+  /* wobbly translucent blob — the watercolor brush */
+  function blob(cx, cy, r, color, alpha, layers = 3, squishY = 1) {
+    for (let L = 0; L < layers; L++) {
+      const rad = r * (1 - L * 0.16);
+      const n = 14, pts = [];
+      const phase = rand() * Math.PI * 2;
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2;
+        const wob = 1 + 0.22 * Math.sin(a * 3 + phase) * rand() + 0.12 * Math.sin(a * 7 + phase * 2);
+        pts.push([cx + Math.cos(a) * rad * wob, cy + Math.sin(a) * rad * wob * squishY]);
+      }
+      g.save();
+      g.globalAlpha = alpha * (0.5 + L * 0.18);
+      g.fillStyle = color;
+      g.filter = `blur(${Math.max(1, rad * 0.10) * K}px)`;
+      g.beginPath();
+      g.moveTo(pts[0][0], pts[0][1]);
+      for (let i = 0; i < n; i++) {
+        const p = pts[i], q = pts[(i + 1) % n];
+        g.quadraticCurveTo(p[0], p[1], (p[0] + q[0]) / 2, (p[1] + q[1]) / 2);
+      }
+      g.closePath();
+      g.fill();
+      g.restore();
+    }
+  }
+  function ink(alpha = 0.75, width = 1.5) {
+    g.strokeStyle = INK; g.globalAlpha = alpha; g.lineWidth = width;
+    g.lineCap = 'round'; g.lineJoin = 'round';
+  }
+  function shape(fill, alpha, pts, stroke = true) {
+    g.save();
+    g.beginPath();
+    pts.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]));
+    g.closePath();
+    g.globalAlpha = alpha; g.fillStyle = fill; g.fill();
+    if (stroke) { ink(0.7, 1.4); g.stroke(); }
+    g.restore();
+  }
+  function house(x, y, w, h, wall, roof) {
+    shape(wall, 0.85, [[x, y], [x + w, y], [x + w, y - h], [x, y - h]]);
+    shape(roof, 0.85, [[x - w * 0.12, y - h], [x + w / 2, y - h - w * 0.5], [x + w * 1.12, y - h]]);
+  }
+  function pine(x, y, s, color) {
+    g.save(); ink(0.6, 1.3); g.beginPath(); g.moveTo(x, y); g.lineTo(x, y - s * 0.5); g.stroke(); g.restore();
+    shape(color, 0.7, [[x - s * 0.42, y - s * 0.3], [x, y - s * 1.5], [x + s * 0.42, y - s * 0.3]], false);
+  }
+  function tree(x, y, s, color) {
+    g.save(); ink(0.6, 1.3); g.beginPath(); g.moveTo(x, y); g.lineTo(x, y - s); g.stroke(); g.restore();
+    blob(x, y - s * 1.2, s * 0.7, color, 0.75, 2);
+  }
+  function road(pts, dash, alpha, color) {
+    g.save();
+    g.strokeStyle = color || INK; g.globalAlpha = alpha; g.lineWidth = 2; g.lineCap = 'round';
+    g.setLineDash(dash);
+    g.beginPath();
+    g.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length - 1; i++) {
+      const p = pts[i], q = pts[i + 1];
+      const end = i === pts.length - 2 ? q : [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+      g.quadraticCurveTo(p[0], p[1], end[0], end[1]);
+    }
+    g.stroke();
+    g.restore();
+  }
+
+  // paper
+  g.fillStyle = '#f4efe4';
+  g.fillRect(0, 0, W, H);
+
+  if (lens.id !== 'place') {
+    if (lens.id === 'mind') {
+      // a brain in profile, facing left
+      [[430, 490, 290], [720, 400, 310], [1080, 450, 310], [900, 620, 300], [640, 770, 230]]
+        .forEach(([x, y, r]) => blob(x, y, r, '#e8c1b4', 0.42));
+      blob(1240, 830, 150, '#d9a596', 0.5, 3, 0.8);        // cerebellum
+      blob(960, 985, 70, '#d9a596', 0.5, 3, 1.5);          // stem
+      g.save(); ink(0.13, 2.2);
+      for (let i = 0; i < 38; i++) {
+        const a = rr(0, Math.PI * 2), d = Math.sqrt(rr(0.05, 1));
+        const x = 780 + Math.cos(a) * 520 * d, y = 530 + Math.sin(a) * 330 * d, s = rr(26, 60), t = rr(0, Math.PI);
+        g.beginPath(); g.moveTo(x, y);
+        g.bezierCurveTo(x + Math.cos(t) * s, y + Math.sin(t) * s, x + Math.cos(t + 1.6) * s, y + Math.sin(t + 1.6) * s,
+                        x + Math.cos(t + 0.5) * s * 1.7, y + Math.sin(t + 0.5) * s * 1.7);
+        g.stroke();
+      }
+      g.restore();
+    }
+    for (const p of lens.regions) {
+      for (let i = 0; i < 7; i++) {
+        blob(p.cx + rr(-0.6, 0.6) * p.rx, p.cy + rr(-0.6, 0.6) * p.ry, rr(0.5, 0.85) * Math.min(p.rx, p.ry) * 1.2,
+             p.wash, 0.24, 3, p.ry / p.rx + 0.2);
+      }
+    }
+  } else {
+  // sea
+  [[1490, 480, 230], [1500, 760, 250], [1430, 980, 220], [1540, 250, 170], [1260, 1010, 170],
+   [1300, 330, 130], [1560, 1040, 160], [1240, 230, 110]].forEach(([x, y, r]) => blob(x, y, r, '#9cc6cb', 0.34));
+  [[1520, 600, 140], [1480, 880, 150], [1560, 380, 100]].forEach(([x, y, r]) => blob(x, y, r, '#6fa3b3', 0.16));
+
+  // land
+  [[270, 400, 250], [250, 770, 270], [520, 570, 270], [770, 400, 280], [800, 900, 270], [1010, 640, 270],
+   [560, 880, 230], [1190, 570, 150], [1150, 830, 170], [1050, 960, 150]]
+    .forEach(([x, y, r]) => blob(x, y, r, '#e9dcbc', 0.5));
+  blob(1405, 318, 135, '#e9dcbc', 0.75, 3, 0.7);          // the island
+  blob(1320, 660, 95, '#ead9b0', 0.7, 3, 1.3);            // the shore
+
+  // region washes
+  for (const p of PLACES) {
+    if (p.id === 'sky') continue;
+    for (let i = 0; i < 6; i++) {
+      blob(p.cx + rr(-0.55, 0.55) * p.rx, p.cy + rr(-0.55, 0.55) * p.ry, rr(0.45, 0.75) * Math.min(p.rx, p.ry) * 1.25,
+           p.wash, 0.2, 3, p.ry / p.rx + 0.25);
+    }
+  }
+  blob(860, 960, 90, '#d9679a', 0.16);                     // a little pink in the footlights
+
+  // night sky
+  const sky = g.createLinearGradient(0, 0, 0, 200);
+  sky.addColorStop(0, 'rgba(33,36,78,0.96)');
+  sky.addColorStop(0.55, 'rgba(56,58,116,0.82)');
+  sky.addColorStop(0.82, 'rgba(120,108,160,0.35)');
+  sky.addColorStop(1, 'rgba(233,183,160,0)');
+  g.fillStyle = sky;
+  g.fillRect(0, 0, W, 200);
+  for (let x = 40; x < W; x += 120) blob(x + rr(-30, 30), 150 + rr(-12, 12), rr(50, 80), '#3d3f7c', 0.14, 2, 0.5);
+  for (let x = 80; x < W; x += 170) blob(x + rr(-40, 40), 188 + rr(-8, 8), rr(50, 80), '#e9b7a0', 0.16, 2, 0.35);
+  g.save();
+  g.fillStyle = '#fff6d8';
+  for (let i = 0; i < 170; i++) {
+    const y = rr(6, 150);
+    g.globalAlpha = rr(0.25, 0.9) * (1 - y / 190);
+    g.beginPath(); g.arc(rr(0, W), y, rr(0.5, 1.6), 0, Math.PI * 2); g.fill();
+  }
+  g.restore();
+  blob(118, 84, 52, '#fff1c4', 0.22, 2);
+  g.save(); g.fillStyle = '#fbf0cf'; g.globalAlpha = 0.95;
+  g.beginPath(); g.arc(118, 84, 25, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#e6d6a8'; g.globalAlpha = 0.5;
+  [[110, 76, 5], [127, 90, 4], [114, 95, 3]].forEach(([x, y, r]) => { g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); });
+  g.restore();
+
+  // roads between places
+  road([[300, 720], [430, 640], [560, 700], [700, 610], [850, 690], [960, 660]], [2, 9], 0.5);   // town → road → city
+  road([[290, 680], [330, 580], [250, 500], [285, 440]], [2, 9], 0.45);                           // town → castle
+  road([[640, 600], [620, 500], [720, 470], [750, 420]], [2, 9], 0.45);                           // road → woods
+  road([[980, 700], [960, 800], [860, 840], [820, 900]], [2, 9], 0.45);                           // city → stage
+  road([[1080, 640], [1180, 600], [1250, 660], [1310, 650]], [2, 9], 0.45);                       // city → coast
+  road([[1140, 540], [1220, 400], [1300, 430], [1340, 350]], [1, 12], 0.55, '#3d5f78');           // the crossing
+
+  // waves
+  g.save(); ink(0.22, 1.3);
+  for (let i = 0; i < 46; i++) {
+    const x = rr(1250, 1580), y = rr(210, 1070);
+    if (Math.hypot((x - 1405) / 150, (y - 318) / 100) < 1) continue;
+    if (Math.hypot((x - 1320) / 90, (y - 660) / 130) < 1) continue;
+    g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + 7, y - 6, x + 14, y); g.quadraticCurveTo(x + 21, y - 6, x + 28, y); g.stroke();
+  }
+  g.restore();
+
+  // woods
+  const greens = ['#4f7350', '#62855a', '#3f6349', '#7a9a68'];
+  for (let i = 0; i < 46; i++) {
+    const a = rr(0, Math.PI * 2), d = Math.sqrt(rr(0.12, 1.25));
+    const x = 770 + Math.cos(a) * 215 * d, y = 395 + Math.sin(a) * 130 * d;
+    if (Math.abs(x - 770) < 46 && Math.abs(y - 385) < 40) continue;
+    pine(x, y, rr(13, 22), greens[i % 4]);
+  }
+  house(752, 402, 36, 22, '#c9a77c', '#7a5540');                                          // the cabin
+  g.save(); g.fillStyle = '#f6d98a'; g.globalAlpha = 0.95; g.fillRect(764, 386, 9, 9); g.restore();
+  g.save(); ink(0.35, 1.2); g.beginPath(); g.moveTo(781, 362); g.quadraticCurveTo(776, 350, 784, 342); g.quadraticCurveTo(790, 334, 785, 326); g.stroke(); g.restore();
+
+  // autumn road
+  const rusts = ['#c9542f', '#d98a3a', '#a83c2a', '#e0a53e'];
+  for (let i = 0; i < 30; i++) {
+    const a = rr(0, Math.PI * 2), d = Math.sqrt(rr(0.15, 1.2));
+    const x = 620 + Math.cos(a) * 150 * d, y = 665 + Math.sin(a) * 118 * d;
+    if (Math.abs(x - 620) < 42 && Math.abs(y - 655) < 30) continue;
+    tree(x, y, rr(9, 14), rusts[i % 4]);
+  }
+  g.save();                                                                              // the car
+  g.fillStyle = '#7b8fa6'; g.globalAlpha = 0.9;
+  g.beginPath(); g.roundRect(598, 650, 44, 13, 4); g.fill();
+  g.beginPath(); g.roundRect(608, 640, 22, 12, 4); g.fill();
+  ink(0.7, 1.3); g.beginPath(); g.roundRect(598, 650, 44, 13, 4); g.stroke();
+  g.fillStyle = INK; g.globalAlpha = 0.85;
+  [608, 632].forEach(x => { g.beginPath(); g.arc(x, 664, 4.5, 0, Math.PI * 2); g.fill(); });
+  g.restore();
+  blob(655, 655, 16, '#f6e3a0', 0.5, 2, 0.5);                                            // headlights
+
+  // small town
+  g.save(); ink(0.3, 1.2);
+  for (let i = 0; i < 70; i++) {
+    const a = rr(0, Math.PI * 2), d = Math.sqrt(rr(0.2, 1.2));
+    const x = 255 + Math.cos(a) * 190 * d, y = 775 + Math.sin(a) * 145 * d;
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x + rr(-2, 2), y - rr(6, 11)); g.stroke();
+  }
+  g.restore();
+  house(212, 790, 30, 20, '#f1e6cf', '#a8553a');
+  house(250, 796, 34, 24, '#e8d3b0', '#6d5a48');
+  house(292, 788, 26, 18, '#f1e6cf', '#8b6a4a');
+  g.save(); g.fillStyle = '#f6d98a'; g.globalAlpha = 0.95; g.fillRect(262, 780, 8, 8); g.fillRect(219, 777, 6, 6); g.restore();
+  g.save(); ink(0.7, 1.4);                                                                // water tower
+  g.beginPath(); g.moveTo(226, 752); g.lineTo(222, 770); g.moveTo(242, 752); g.lineTo(246, 770); g.stroke();
+  g.fillStyle = '#c9d3d6'; g.globalAlpha = 0.9;
+  g.beginPath(); g.ellipse(234, 744, 13, 10, 0, 0, Math.PI * 2); g.fill(); ink(0.7, 1.4); g.stroke();
+  g.restore();
+
+  // storybook kingdom
+  blob(270, 412, 60, '#9aa77a', 0.35, 2, 0.4);                                           // the hill
+  const stone = '#ddd3e6';
+  shape(stone, 0.95, [[246, 410], [246, 372], [253, 372], [253, 378], [260, 378], [260, 372], [267, 372], [267, 378],
+                     [274, 378], [274, 372], [281, 372], [281, 378], [288, 378], [288, 372], [294, 372], [294, 410]]);
+  shape(stone, 0.95, [[232, 410], [232, 360], [248, 360], [248, 410]]);
+  shape(stone, 0.95, [[292, 410], [292, 352], [308, 352], [308, 410]]);
+  shape('#8a6bb5', 0.9, [[229, 360], [240, 336], [251, 360]]);
+  shape('#8a6bb5', 0.9, [[289, 352], [300, 326], [311, 352]]);
+  shape('#5d4a3a', 0.8, [[264, 410], [264, 396], [270, 390], [276, 396], [276, 410]], false);
+  g.save(); ink(0.7, 1.3); g.beginPath(); g.moveTo(300, 326); g.lineTo(300, 312); g.stroke(); g.restore();
+  shape('#d9a23a', 0.9, [[300, 312], [313, 316], [300, 320]], false);
+
+  // the city
+  const towers = [[958, 46], [976, 70], [996, 54], [1014, 92], [1034, 62], [1052, 78], [1070, 44]];
+  towers.forEach(([x, h], i) => {
+    shape(['#56628c', '#6a76a3', '#47527a'][i % 3], 0.92, [[x, 690], [x, 690 - h], [x + 17, 690 - h], [x + 17, 690]]);
+    g.save(); g.fillStyle = '#f6d98a';
+    for (let wy = 690 - h + 7; wy < 684; wy += 9) for (let wx = x + 4; wx < x + 14; wx += 7) {
+      if (rand() < 0.6) { g.globalAlpha = rr(0.6, 1); g.fillRect(wx, wy, 3.2, 4.2); }
+    }
+    g.restore();
+  });
+  g.save(); ink(0.7, 1.3); g.beginPath(); g.moveTo(1022.5, 598); g.lineTo(1022.5, 582); g.stroke(); g.restore();
+
+  // the coast
+  shape('#c8b58f', 0.85, [[1290, 700], [1300, 660], [1350, 652], [1362, 700]]);                  // cliff
+  house(1306, 658, 30, 18, '#f3ede0', '#51626e');                                         // the house on the shore
+  g.save(); g.fillStyle = '#f6d98a'; g.globalAlpha = 0.95; g.fillRect(1316, 646, 7, 7); g.restore();
+  shape('#f3ede0', 0.95, [[1408, 700], [1412, 650], [1424, 650], [1428, 700]]);                  // lighthouse
+  shape('#c2552f', 0.9, [[1410, 680], [1411, 668], [1425, 668], [1426, 680]], false);
+  shape('#3a3228', 0.85, [[1410, 650], [1418, 638], [1426, 650]], false);
+  blob(1450, 640, 34, '#f6e3a0', 0.4, 2, 0.35);
+  blob(1418, 706, 30, '#c8b58f', 0.6, 2, 0.35);
+
+  // the stage
+  g.save();                                                                              // spotlights
+  [[760, 'rgba(255,236,170,0.5)'], [840, 'rgba(255,200,215,0.5)']].forEach(([x, c]) => {
+    const beam = g.createLinearGradient(0, 880, 0, 975);
+    beam.addColorStop(0, c); beam.addColorStop(1, 'rgba(255,240,200,0)');
+    g.fillStyle = beam;
+    g.beginPath(); g.moveTo(x, 880); g.lineTo(800 - (x - 800) * 0.1 - 34, 975); g.lineTo(800 - (x - 800) * 0.1 + 34, 975); g.closePath(); g.fill();
+  });
+  g.restore();
+  shape('#f0dfc6', 0.9, [[752, 985], [752, 920], [848, 920], [848, 985]]);
+  shape('#2f2a3e', 0.85, [[760, 985], [760, 930], [840, 930], [840, 985]], false);
+  g.save(); g.fillStyle = '#b8323f'; g.globalAlpha = 0.95;                                // curtains
+  g.beginPath(); g.moveTo(760, 930); g.lineTo(800, 930); g.quadraticCurveTo(786, 956, 772, 985); g.lineTo(760, 985); g.closePath(); g.fill();
+  g.beginPath(); g.moveTo(840, 930); g.lineTo(800, 930); g.quadraticCurveTo(814, 956, 828, 985); g.lineTo(840, 985); g.closePath(); g.fill();
+  g.restore();
+  g.save(); g.fillStyle = '#e9a53a'; g.globalAlpha = 0.95;
+  g.beginPath(); g.arc(800, 920, 48, Math.PI, 0); g.closePath(); g.fill(); ink(0.7, 1.4); g.stroke();
+  g.fillStyle = '#fff6d8'; g.globalAlpha = 0.95;
+  for (let i = 1; i < 10; i++) { const a = Math.PI + i * Math.PI / 10; g.beginPath(); g.arc(800 + Math.cos(a) * 38, 920 + Math.sin(a) * 38, 2.4, 0, Math.PI * 2); g.fill(); }
+  g.restore();
+  blob(800, 978, 26, '#fff1c4', 0.55, 2, 0.35);
+
+  // across the sea
+  shape('#b9bfc8', 0.95, [[1396, 346], [1396, 290], [1414, 290], [1414, 346]]);                  // clock tower
+  shape('#6d7684', 0.95, [[1393, 290], [1405, 262], [1417, 290]]);
+  g.save(); g.fillStyle = '#fbf0cf'; g.globalAlpha = 0.95; g.beginPath(); g.arc(1405, 303, 6, 0, Math.PI * 2); g.fill(); ink(0.7, 1.2); g.stroke();
+  g.beginPath(); g.moveTo(1405, 303); g.lineTo(1405, 299); g.moveTo(1405, 303); g.lineTo(1408, 304); g.stroke(); g.restore();
+  house(1366, 346, 24, 16, '#c9c2b8', '#6d7684');
+  house(1420, 346, 28, 20, '#d6cfc4', '#59616d');
+  g.save(); ink(0.22, 1.2);                                                               // drizzle
+  for (let i = 0; i < 26; i++) { const x = rr(1300, 1510), y = rr(240, 380); g.beginPath(); g.moveTo(x, y); g.lineTo(x - 3, y + 9); g.stroke(); }
+  g.restore();
+  }
+
+  // paper grain
+  g.save();
+  for (let i = 0; i < 9000; i++) {
+    g.globalAlpha = rr(0.02, 0.06);
+    g.fillStyle = rand() < 0.5 ? '#3a3228' : '#ffffff';
+    g.fillRect(rr(0, W), rr(0, H), rr(0.6, 1.8), rr(0.6, 1.8));
+  }
+  g.restore();
+  return cv;
+}
+
+/* ================================================================
+   Overlay: region names, threads, songs
+   ================================================================ */
+const NS = 'http://www.w3.org/2000/svg';
+const el = (name, attrs = {}, parent) => {
+  const e = document.createElementNS(NS, name);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+};
+const svg = document.getElementById('overlay');
+const zoomer = document.getElementById('zoomer');
+const canvas = document.getElementById('paint');
+const gLabels = document.getElementById('labels');
+const gThreads = document.getElementById('threads');
+const gSongs = document.getElementById('songs');
+const tipText = document.querySelector('#tip text');
+const lensNav = document.getElementById('lenses');
+
+let lens = null;          // the lens currently drawn
+let zoom = 1;
+const painted = {};
+
+function smoothPath(pts) {
+  if (pts.length < 2) return '';
+  let d = `M${pts[0][0]},${pts[0][1]}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+    const t = 0.22;
+    d += ` C${p1[0] + (p2[0] - p0[0]) * t},${p1[1] + (p2[1] - p0[1]) * t} ${p2[0] - (p3[0] - p1[0]) * t},${p2[1] - (p3[1] - p1[1]) * t} ${p2[0]},${p2[1]}`;
+  }
+  return d;
+}
+
+/* long titles break onto two lines so neighbours don't collide */
+function titleLines(t) {
+  if (t.length < 17) return [t];
+  let best = -1;
+  for (let i = 0; i < t.length; i++) {
+    if (t[i] === ' ' && (best < 0 || Math.abs(i - t.length / 2) < Math.abs(best - t.length / 2))) best = i;
+  }
+  return best < 0 ? [t] : [t.slice(0, best), t.slice(best + 1)];
+}
+
+function buildOverlay() {
+  lensNav.innerHTML = '<span>view by</span>' + LENSES.map(l => `<a href="#${l.id}" data-lens="${l.id}">${l.label}</a>`).join('');
+  for (const th of THREADS) th.path = el('path', { class: 'thread', stroke: th.color }, gThreads);
+  for (const s of SONGS) {
+    const grp = el('g', { class: 'song', tabindex: 0, role: 'button', 'aria-label': s.title }, gSongs);
+    el('circle', { r: 20, fill: 'transparent' }, grp);
+    s.dot = el('circle', { class: 'dot', r: 7 }, grp);
+    s.num = el('text', { class: 'num', y: 0.5 }, grp);
+    if (ARTIFACTS[s.id]) {
+      grp.classList.add('has-art');
+      const art = el('g', { class: 'art', stroke: '#3a3228', 'stroke-width': 1.1, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, grp);
+      art.innerHTML = '<ellipse cx="0" cy="18" rx="13" ry="2.4" fill="#3a3228" opacity="0.13" stroke="none"/>' + ARTIFACTS[s.id];
+    }
+    s.label = el('text', { class: 'title' }, grp);
+    s.lines = titleLines(s.title).map(line => { const t = el('tspan', { x: 0 }, s.label); t.textContent = line; return t; });
+    grp.addEventListener('mouseenter', () => showTip(s));
+    grp.addEventListener('mouseleave', () => showTip(current.song));
+    grp.addEventListener('focus', () => showTip(s));
+    grp.addEventListener('click', () => go('song', s.id));
+    grp.addEventListener('keydown', e => { if (e.key === 'Enter') go('song', s.id); });
+    s.node = grp;
+  }
+}
+
+/* redraw everything that depends on the lens: paint, names, positions */
+function setLens(next) {
+  const first = !lens;
+  lens = next;
+  lensNav.querySelectorAll('a').forEach(a => a.classList.toggle('on', a.dataset.lens === lens.id));
+
+  const draw = () => {
+    painted[lens.id] = painted[lens.id] || paintMap(lens);
+    const src = painted[lens.id];
+    canvas.width = src.width; canvas.height = src.height;
+    canvas.getContext('2d').drawImage(src, 0, 0);
+    canvas.style.opacity = 1;
+  };
+  if (first) draw(); else { canvas.style.opacity = 0; setTimeout(draw, 300); }
+
+  gLabels.innerHTML = '';
+  for (const p of lens.regions) {
+    const t = el('text', {
+      class: 'place-label' + (p.id === 'sky' ? ' night' : ''),
+      x: p.cx, y: p.id === 'sky' ? 30 : p.cy - p.ry - 16
+    }, gLabels);
+    t.textContent = p.name;
+    t.addEventListener('click', () => go('in', p.id));
+    p.label = t;
+  }
+  for (const s of SONGS) {
+    const p = lens.regionById[s.where[lens.id]];
+    s.x = s.pos[lens.id].x; s.y = s.pos[lens.id].y;
+    s.node.style.transform = `translate(${s.x}px, ${s.y}px)`;
+    s.node.classList.toggle('night', p.id === 'sky');
+    s.dot.setAttribute('fill', p.dot);
+  }
+  for (const th of THREADS) {
+    th.path.setAttribute('d', smoothPath(th.stops.map(([id]) => [songById[id].x, songById[id].y])));
+    th.path.classList.remove('on');
+    th.len = th.path.getTotalLength();
+  }
+}
+
+/* step into a region: the map scales up around it, dots become objects */
+function setZoom(region) {
+  zoom = region ? Math.max(1, Math.min(3.4, W / (2.5 * region.rx), H / (2.5 * region.ry))) : 1;
+  const clamp = v => Math.min(0, Math.max(1 - zoom, v));
+  const tx = region ? clamp(0.5 - region.cx / W * zoom) : 0;
+  const ty = region ? clamp(0.5 - region.cy / H * zoom) : 0;
+  zoomer.style.transform = `translate(${tx * 100}%, ${ty * 100}%) scale(${zoom})`;
+  svg.classList.toggle('entered', !!region);
+  tipText.setAttribute('font-size', 17 / zoom);
+  tipText.style.strokeWidth = 6 / zoom + 'px';
+  if (!region) return;
+  const fs = Math.max(8, Math.min(15, 24 / zoom));
+  region.songs.forEach((s, i) => {
+    const art = !!ARTIFACTS[s.id];
+    const above = region.id === 'sky' && i % 2;
+    s.label.setAttribute('font-size', fs);
+    s.label.style.strokeWidth = fs * 0.4 + 'px';
+    const y0 = above ? -(12 + (s.lines.length - 1) * fs * 1.15) : (art ? 22 : 9) + fs;
+    s.lines.forEach((t, n) => t.setAttribute('y', y0 + n * fs * 1.15));
+  });
+}
+
+function showTip(s) {
+  if (!s || (svg.classList.contains('entered') && s.node.classList.contains('here'))) { tipText.textContent = ''; return; }
+  tipText.textContent = s.title;
+  const half = tipText.getComputedTextLength() / 2 + 10;
+  tipText.setAttribute('x', Math.min(W - half, Math.max(half, s.x)));
+  tipText.setAttribute('y', s.y < 60 ? s.y + 34 : s.y - 20);
+}
+
+/* ================================================================
+   Panel + state (kept in the URL hash so back/forward work):
+   #lens, #lens/in=region, #lens/thread=id, #lens/song=id
+   ================================================================ */
+const panel = document.getElementById('panel');
+const current = { song: null };
+let threadContext = null;   // the thread a song was opened from, so its path stays lit
+let regionContext = null;   // the region a song was opened inside, so we stay zoomed in
+const stage = new WorldStage(document.getElementById('scene'), {
+  pick: id => go('song', id),
+  title: id => songById[id].title
+});
+
+const link = (kind, id) => `#${lens.id}` + (kind ? `/${kind}=${id}` : '');
+function go(kind, id) { location.hash = link(kind, id); }
+
+const mark = p => `<span><i class="mark" style="background:${p.id === 'sky' ? '#2c2f5c' : p.dot || p.color}"></i></span>`;
+const songRow = (s, n, text) => `
+  <li><a href="${link('song', s.id)}" data-song="${s.id}">
+    <span class="n">${n}</span>
+    <span class="t">${s.title}<small>${s.album}</small></span>
+    <span class="d">${text}</span>
+  </a></li>`;
+
+function render() {
+  const m = location.hash.match(/^#(place|emotion|persona|mind)?\/?(?:(\w+)=([\w-]+))?$/) || [];
+  const want = lensById[m[1]] || lensById.place;
+  if (want !== lens) { setLens(want); threadContext = regionContext = null; }
+  let kind = m[2] || 'home';
+  const id = m[3];
+  const region = kind === 'in' && lens.regionById[id];
+  const thread = kind === 'thread' && threadById[id];
+  const song = kind === 'song' && songById[id];
+  if (!region && !thread && !song) kind = 'home';
+
+  if (thread) { threadContext = thread; regionContext = null; }
+  if (region) { regionContext = region; threadContext = null; }
+  if (kind === 'home') threadContext = regionContext = null;
+  if (song && threadContext && !song.threads.includes(threadContext)) threadContext = null;
+  if (song && regionContext && song.where[lens.id] !== regionContext.id) regionContext = null;
+  const lit = thread || (song && threadContext) || null;
+  const inside = region || (song && !lit && regionContext) || null;
+  current.song = song || null;
+
+  // map
+  setZoom(inside);
+  const world = (lens.id === 'place' && inside && WORLDS[inside.id]) || null;
+  stage.show(world);
+  stage.select(world && song ? song.id : null);
+  stage.hot(null);
+  document.querySelector('.map').classList.toggle('in-scene', !!world);
+  const members = lit ? new Set(lit.stops.map(s => s[0])) : null;
+  for (const s of SONGS) {
+    s.node.classList.toggle('here', !!inside && inside.songs.includes(s));
+    s.node.classList.toggle('dim', members ? !members.has(s.id) : !!song && !inside && s !== song);
+    s.node.classList.toggle('sel', s === song);
+    const n = lit ? lit.stops.findIndex(st => st[0] === s.id) : -1;
+    s.node.classList.toggle('stop', n >= 0);
+    s.num.textContent = n >= 0 ? n + 1 : '';
+  }
+  for (const th of THREADS) {
+    const on = th === lit;
+    const wasOn = th.path.classList.contains('on');
+    th.path.classList.toggle('on', on);
+    th.path.classList.toggle('off', !on && kind !== 'home');
+    if (on && !wasOn) {
+      th.path.style.transition = 'none';
+      th.path.style.strokeDasharray = th.len;
+      th.path.style.strokeDashoffset = th.len;
+      th.path.getBoundingClientRect();
+      th.path.style.transition = `stroke-dashoffset ${Math.min(3.2, 0.9 + th.len / 700)}s ease-in-out, opacity 0.5s ease`;
+      th.path.style.strokeDashoffset = 0;
+    } else if (!on) {
+      th.path.style.transition = '';
+      th.path.style.strokeDasharray = '';
+      th.path.style.strokeDashoffset = '';
+    }
+  }
+  for (const p of lens.regions) p.label.classList.toggle('dim', !!song && !lit && song.where[lens.id] !== p.id);
+  showTip(song);
+
+  // panel
+  let html = '';
+  if (kind === 'home') {
+    html = `
+      <h1>${lens.title}</h1>
+      <div class="kicker">${lens.kicker}</div>
+      ${lens.intro.map(t => `<p>${t}</p>`).join('')}
+      <h2>${lens.noun}</h2>
+      <ul class="rows">${lens.regions.map(p => `
+        <li><a href="${link('in', p.id)}">
+          ${mark(p)}
+          <span class="t">${p.name}<small>${p.songs.length} songs</small></span>
+        </a></li>`).join('')}</ul>
+      <h2>threads</h2>
+      <ul class="rows">${THREADS.map(t => `
+        <li><a href="${link('thread', t.id)}" data-thread="${t.id}">
+          ${mark(t)}
+          <span class="t">${t.name}<small>${t.stops.length} songs</small></span>
+        </a></li>`).join('')}</ul>
+      <p class="note" style="margin-top:22px">The descriptions are paraphrases of each song’s imagery, not quoted lyrics. A few threads are connections she has confirmed herself; the sorting and the rest of the threads are one listener’s reading.</p>
+      <a class="paint-link" href="index.html">the paintings →</a>`;
+  } else if (region) {
+    html = `
+      <a class="back" href="${link()}">← step back out</a>
+      <h1>${region.name}</h1>
+      <div class="kicker">${region.sub ? region.sub + ' · ' : ''}${region.songs.length} songs live here</div>
+      <p>${region.blurb}</p>
+      ${world ? '<p class="note">You are standing in it. Every song is something on this block: move over the street and see what answers.</p>' : ''}
+      <ul class="rows">${region.songs.map(s => songRow(s, '·', s.image)).join('')}</ul>`;
+  } else if (thread) {
+    html = `
+      <a class="back" href="${link()}">← the whole map</a>
+      <h1>${thread.name}</h1>
+      <div class="kicker">a thread through ${new Set(thread.stops.map(s => songById[s[0]].where[lens.id])).size} ${lens.noun}</div>
+      <span class="tag">${thread.canon ? 'confirmed by her' : 'a reading'}</span>
+      <p>${thread.blurb}</p>
+      <ul class="rows">${thread.stops.map(([sid, note], i) => songRow(songById[sid], i + 1, note)).join('')}</ul>`;
+  } else {
+    const home = lens.regionById[song.where[lens.id]];
+    html = `
+      <a class="back" href="${lit ? link('thread', lit.id) : link('in', home.id)}">← ${lit ? lit.name : home.name}</a>
+      <h1>${song.title}</h1>
+      <div class="kicker">${song.album}</div>
+      <p>${song.image}</p>
+      <h2>where it lives</h2>
+      <ul class="rows">${LENSES.map(l => { const p = l.regionById[song.where[l.id]]; return `
+        <li><a href="#${l.id}/in=${p.id}">
+          ${mark(p)}
+          <span class="t">${p.name}<small>${l.label}</small></span>
+        </a></li>`; }).join('')}</ul>
+      ${song.threads.length ? `<h2>threads running through it</h2>
+      <ul class="rows">${song.threads.map(t => `
+        <li><a href="${link('thread', t.id)}" data-thread="${t.id}">
+          ${mark(t)}
+          <span class="t">${t.name}</span>
+          <span class="d">${t.stops.find(st => st[0] === song.id)[1]}</span>
+        </a></li>`).join('')}</ul>` : ''}
+      ${song.painted !== undefined ? `<p style="margin-top:24px"><a class="paint-link" href="index.html#song=${song.painted}">watch it painted →</a></p>` : ''}`;
+  }
+  panel.innerHTML = html;
+  panel.scrollTop = 0;
+
+  // hovering a row points at the map
+  panel.querySelectorAll('[data-song]').forEach(a => {
+    const s = songById[a.dataset.song];
+    a.addEventListener('mouseenter', () => { s.node.classList.add('hot'); showTip(s); stage.hot(s.id); });
+    a.addEventListener('mouseleave', () => { s.node.classList.remove('hot'); showTip(current.song); stage.hot(null); });
+  });
+  panel.querySelectorAll('[data-thread]').forEach(a => {
+    const t = threadById[a.dataset.thread];
+    a.addEventListener('mouseenter', () => t.path.classList.add('peek'));
+    a.addEventListener('mouseleave', () => t.path.classList.remove('peek'));
+  });
+}
+
+buildOverlay();
+render();
+window.addEventListener('hashchange', render);
+</script>
+</body>
+</html>

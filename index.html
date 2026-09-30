@@ -196,6 +196,23 @@
     background: var(--eggshell);
   }
   #view-toggle:hover { opacity: 1; }
+  #universe-link {
+    position: fixed;
+    bottom: 22px;
+    right: 22px;
+    border: 1px solid rgba(74,68,56,0.28);
+    border-radius: 999px;
+    padding: 8px 20px;
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    color: var(--ink);
+    text-decoration: none;
+    text-transform: lowercase;
+    opacity: 0.7;
+    transition: opacity 0.25s ease;
+    background: var(--eggshell);
+  }
+  #universe-link:hover { opacity: 1; }
 
   #player-shell {
     position: fixed;
@@ -241,6 +258,7 @@
 <div id="gallery" style="display:none"></div>
 
 <button id="view-toggle">gallery</button>
+<a id="universe-link" href="universe.html">universe</a>
 
 <div id="player-shell"><div id="yt"></div></div>
 
@@ -1805,7 +1823,7 @@ const SONGS = [
     inst: {}
   }
 ];
-let songIndex = 0;
+let songIndex = Math.min(SONGS.length - 1, +(location.hash.match(/^#song=(\d+)$/) || [0, 0])[1]);
 
 function getInst(song, S) {
   if (!song.inst[S]) {
